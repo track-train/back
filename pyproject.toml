@@ -1,0 +1,30 @@
+[project]
+name = "trackntrain"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Baptiste-Ferrand",email = "baptiste.ferrand@ynov.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi (>=0.115.13,<0.116.0)",
+    "uvicorn[standard] (>=0.34.3,<0.35.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+black = "^25.1.0"
+isort = "^6.0.1"
+mypy = "^1.16.1"
+
+[tool.poetry.scripts]
+start-api = "uvicorn app.entrypoints.api.main:app --reload"
+
+[tool.poetry]
+package-mode = false
