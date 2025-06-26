@@ -22,6 +22,7 @@ pytest = "^8.4.1"
 black = "^25.1.0"
 isort = "^6.0.1"
 mypy = "^1.16.1"
+alembic = "^1.16.2"
 
 [tool.poetry.scripts]
 start-api = "uvicorn app.entrypoints.api.main:app --reload"
