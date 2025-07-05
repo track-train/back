@@ -5,3 +5,8 @@ class DomainError(Exception):
 class DuplicateProfileError(DomainError):
     """Email déjà utilisé."""
     pass
+
+class ProfileNotFoundError(DomainError):
+    """Profil non trouvé."""
+    pass
+

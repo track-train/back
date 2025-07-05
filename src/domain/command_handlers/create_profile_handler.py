@@ -19,7 +19,6 @@ class CreateProfileHandler:
 
         # Hasher le mot de passe
         hashed_pw = self._hasher.hash(cmd.password)
-
         # Construire l'entité métier
         profile = DomainProfile(
             id=uuid4(),
@@ -32,7 +31,7 @@ class CreateProfileHandler:
             pricing=cmd.pricing,
             description=cmd.description,
             legacy=cmd.legacy,
-            roles=cmd.roles,
+            roles=["user"],
             created_at=datetime.utcnow()
         )
 

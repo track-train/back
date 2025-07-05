@@ -4,11 +4,11 @@ from typing import List, Optional
 class CreateProfileCommand(BaseModel):
     email: EmailStr
     password: str
-    name: str
+    name: Optional[str] = None  
     sex: Optional[str] = None
     age: Optional[int] = None
     contact: Optional[str] = None
     pricing: Optional[float] = None
     description: Optional[str] = None
     legacy: Optional[str] = None
-    roles: List[str] = []
+    roles: List[str] = ["user"]

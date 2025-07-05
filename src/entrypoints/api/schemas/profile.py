@@ -6,7 +6,7 @@ from typing import List, Optional
 class ProfileCreate(BaseModel):
     email: EmailStr
     password: str
-    name: str
+    name: Optional[str] = None
     sex: Optional[str] = None
     age: Optional[int] = None
     contact: Optional[str] = None
@@ -17,7 +17,7 @@ class ProfileCreate(BaseModel):
 class ProfileRead(BaseModel):
     id: UUID
     email: EmailStr
-    name: str
+    name: Optional[str] = None
     sex: Optional[str]
     age: Optional[int]
     contact: Optional[str]
