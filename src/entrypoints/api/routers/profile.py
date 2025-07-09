@@ -4,8 +4,8 @@ from uuid import UUID
 
 from src.container import container
 from src.domain.lib.jwt_manager import create_access_token
-from src.entrypoints.api.schemas.profile import ProfileCreate, ProfileRead, ProfileWithToken, TokenResponse
-from src.domain.exceptions import DuplicateProfileError, ProfileNotFoundError
+from src.entrypoints.api.schemas.profile import ProfileCreate, ProfileRead, ProfileWithToken, TokenResponse, ProfileLogin
+from src.domain.exceptions import DuplicateProfileError, NotFoundError, AuthenticationError
 from src.entrypoints.api.deps.auth import get_current_user
 from src.entrypoints.api.deps.roles import require_roles
 
@@ -50,8 +50,23 @@ async def delete_profile(
     service = container.get_profile_service()
     try: 
         service.delete(profile_id)
-    except ProfileNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
     return None
 
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+async def login(
+    dto: ProfileLogin,
+):
+    service = container.get_profile_service()
+    try:
+        profile = service.login(email=dto.email, password=dto.password)
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    
+    token = create_access_token(
+        subject=str(profile.id),
+        roles=profile.roles,
+    )
+    return TokenResponse(access_token=token)

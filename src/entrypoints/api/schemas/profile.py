@@ -38,3 +38,7 @@ class TokenResponse(BaseModel):
 class ProfileWithToken(BaseModel):
     profile: ProfileRead
     token: TokenResponse
+
+class ProfileLogin(BaseModel):
+    email: EmailStr
+    password: str

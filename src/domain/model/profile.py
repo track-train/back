@@ -8,7 +8,7 @@ class Profile:
     id: UUID
     email: str
     password: str
-    name: str
+    name: Optional[str] = None
     sex: Optional[str] = None
     age: Optional[int] = None
     contact: Optional[str] = None

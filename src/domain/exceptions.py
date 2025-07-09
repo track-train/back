@@ -3,25 +3,28 @@ class DomainError(Exception):
     pass
 
 class DuplicateProfileError(DomainError):
-    """Email déjà utilisé."""
+    """Email already used."""
     pass
 
-class ProfileNotFoundError(DomainError):
-    """Profil non trouvé."""
+class NotFoundError(DomainError):
+    """Not Found."""
     pass
 
 class AuthorizationError(DomainError):
-    """Erreur d'autorisation."""
+    """Authorization error."""
     pass
 
 class TokenExpiredError(DomainError):
-    """Jeton expiré."""
+    """Expired token."""
     pass
 
 class TokenInvalidError(DomainError):
-    """Jeton invalide."""
+    """Invalid token."""
     pass
 
 class TokenMissingError(DomainError):
-    """Jeton manquant."""
+    """Missing token."""
     pass
+
+class AuthenticationError(DomainError):
+    """Authentification failed."""

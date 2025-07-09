@@ -5,7 +5,7 @@ from typing import List, Optional
 from src.domain.model.profile import Profile as DomainProfile
 from src.domain.ports.profile_repository import ProfileRepository
 from src.domain.ports.password_hasher import PasswordHasher
-from src.domain.exceptions import DuplicateProfileError, ProfileNotFoundError
+from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError
 
 class ProfileService:
     def __init__(self, repo: ProfileRepository, hasher: PasswordHasher):
@@ -17,7 +17,7 @@ class ProfileService:
                *,
                email: str,
                raw_password: str,
-               name: str,
+               name: Optional[str] = None,
                sex: Optional[str] = None,
                age: Optional[int] = None,
                contact: Optional[str] = None,
@@ -52,6 +52,16 @@ class ProfileService:
     def delete(self, profile_id: UUID):
         profile = self._repo.find_by_id(profile_id)
         if not profile:
-            raise ProfileNotFoundError(f"Profile with id {profile_id} not found")
+            raise NotFoundError(f"Profile with id {profile_id} not found")
         
         self._repo.delete(profile_id)
+
+    def login(self, email: str, password: str) -> DomainProfile:
+        profile = self._repo.find_by_email(email)
+        if not profile:
+            raise AuthenticationError(f"Invalid password or email")
+        
+        if not self._hasher.verify(password, profile.password):
+            raise AuthenticationError(f"Invalid password or email")
+        
+        return profile
