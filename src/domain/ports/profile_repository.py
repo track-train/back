@@ -19,3 +19,7 @@ class ProfileRepository(ABC):
     @abstractmethod
     def find_by_id(self, id: UUID)  -> Optional[Profile]:
         pass
+
+    @abstractmethod
+    def update(self, profile: Profile) -> Profile:
+        pass

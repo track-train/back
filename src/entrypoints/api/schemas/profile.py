@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from uuid import UUID
 from datetime import datetime
 from typing import List, Optional
@@ -42,3 +42,24 @@ class ProfileWithToken(BaseModel):
 class ProfileLogin(BaseModel):
     email: EmailStr
     password: str
+
+class ProfilUpdate(BaseModel):
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: Optional[str]          = None
+    sex: Optional[str]           = None
+    age: Optional[int]           = None
+    contact: Optional[str]       = None
+    pricing: Optional[float]     = None
+    description: Optional[str]   = None
+    legacy: Optional[str]        = None
+    roles: Optional[List[str]]   = None
+
+class EmailUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    email: EmailStr
+
+class PasswordUpdate(BaseModel):
+    old_password: str = Field(..., alias="oldPassword")
+    new_password: str = Field(..., alias="newPassword")

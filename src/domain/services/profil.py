@@ -73,3 +73,42 @@ class ProfileService:
             raise NotFoundError(f"Profile with id {profile_id} not found")
         
         return profile
+    
+    def update(self,
+               id: UUID,
+               *,
+               name: Optional[str] = None,
+               sex: Optional[str] = None,
+               age: Optional[int] = None,
+               contact: Optional[str] = None,
+               pricing: Optional[float] = None,
+               description: Optional[str] = None,
+               legacy: Optional[str] = None,
+               roles: Optional[List[str]] = None
+               ) -> DomainProfile:
+        profile = self.get_by_id(id)  
+
+        for attr, val in {
+            "name": name, "sex": sex, "age": age,
+            "contact": contact, "pricing": pricing,
+            "description": description, "legacy": legacy,
+            "roles": roles
+        }.items():
+            if val is not None:
+                setattr(profile, attr, val)
+
+        return self._repo.update(profile)
+    
+    def update_email(self, id: UUID, new_email: str) -> DomainProfile:
+        profile = self.get_by_id(id)  
+        if new_email != profile.email and self._repo.find_by_email(new_email):
+            raise DuplicateProfileError(f"Email {new_email} already use")
+        profile.email = new_email
+        return self._repo.update(profile)
+
+    def update_password(self, id: UUID, old_password: str, new_password: str) -> None:
+        profile = self.get_by_id(id) 
+        if not self._hasher.verify(old_password, profile.password):
+            raise AuthenticationError("Wrong password")
+        profile.password = self._hasher.hash(new_password)
+        self._repo.update(profile)

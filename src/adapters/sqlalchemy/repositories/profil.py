@@ -50,3 +50,13 @@ class SqlAlchemyProfileRepository(ProfileRepository):
             return
         self._session.delete(orm)
         self._session.commit()
+    
+    def update(self, profile: DomainProfile) -> Optional[DomainProfile]:
+        orm = self._session.get(ORMProfile, profile.id)
+        if not orm:
+            return None
+        for key, value in profile.to_orm_dict().items():
+            setattr(orm, key, value)
+        self._session.commit()
+        self._session.refresh(orm)
+        return profil_from_orm(orm) 
