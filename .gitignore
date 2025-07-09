@@ -1,2 +1,14 @@
+# IDE
+.vscode/
+.idea/
+.cursor/
+.cursorrules
+.cursorignore
+.cursorignore
+
+# ENV
 .env
+
+# PYTHON
 __pycache__/
+
