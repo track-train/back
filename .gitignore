@@ -8,6 +8,7 @@
 
 # ENV
 .env
+.venv/
 
 # PYTHON
 __pycache__/*
