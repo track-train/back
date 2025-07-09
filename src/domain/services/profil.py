@@ -54,6 +54,7 @@ class ProfileService:
         if not profile:
             raise NotFoundError(f"Profile with id {profile_id} not found")
         
+        
         self._repo.delete(profile_id)
 
     def login(self, email: str, password: str) -> DomainProfile:
@@ -63,5 +64,12 @@ class ProfileService:
         
         if not self._hasher.verify(password, profile.password):
             raise AuthenticationError(f"Invalid password or email")
+        
+        return profile
+    
+    def get_by_id(self, profile_id: UUID) -> DomainProfile:
+        profile = self._repo.find_by_id(profile_id)
+        if not profile:
+            raise NotFoundError(f"Profile with id {profile_id} not found")
         
         return profile
