@@ -1,51 +1,57 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
 from uuid import UUID
 
-from src.entrypoints.api.schemas.profile import ProfileCreate, ProfileRead
-from src.domain.commands.create_profile import CreateProfileCommand
-from src.domain.command_handlers.create_profile_handler import CreateProfileHandler
-from src.domain.exceptions import DuplicateProfileError
-from src.adapters.sqlalchemy.repositories import SqlAlchemyProfileRepository
-from src.adapters.security import BcryptPasswordHasher
-from src.entrypoints.api.deps import get_db_session
-from src.domain.commands.delete_profile import DeleteProfileCommand
-from src.domain.command_handlers.delete_profile_handler import DeleteProfileHandler
-from src.domain.exceptions import ProfileNotFoundError
+
+from src.container import container
+from src.domain.lib.jwt_manager import create_access_token
+from src.entrypoints.api.schemas.profile import ProfileCreate, ProfileRead, ProfileWithToken, TokenResponse
+from src.domain.exceptions import DuplicateProfileError, ProfileNotFoundError
+from src.entrypoints.api.deps.auth import get_current_user
+from src.entrypoints.api.deps.roles import require_roles
+
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 
-@router.post("", response_model=ProfileRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProfileWithToken, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     dto: ProfileCreate,
-    session: Session = Depends(get_db_session),
 ):
-    repo   = SqlAlchemyProfileRepository(session)
-    hasher = BcryptPasswordHasher()
-    handler = CreateProfileHandler(repo, hasher)
+    service = container.get_profile_service()
 
-    cmd = CreateProfileCommand(**dto.dict())
     try:
-        profile = handler.handle(cmd)
+        profile = service.create(
+            email=dto.email,
+            raw_password=dto.password,
+            name=dto.name or "",
+            sex=dto.sex,
+            age=dto.age,
+            contact=dto.contact,
+            pricing=dto.pricing,
+            description=dto.description,
+            legacy=dto.legacy,
+        )
     except DuplicateProfileError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+    token = create_access_token(
+        subject=str(profile.id),
+        roles=profile.roles,
+    )
 
-    return profile
+    profile_dto = ProfileRead.model_validate(profile)
+    token_dto = TokenResponse(access_token=token)
 
-@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
+    return ProfileWithToken(profile=profile_dto, token=token_dto)
+
+@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
 async def delete_profile(
     profile_id: UUID,
-    session: Session = Depends(get_db_session),
-):
-    repo = SqlAlchemyProfileRepository(session)
-    handler = DeleteProfileHandler(repo)
-
-    # 2. On construit la commande métier avec l'UUID reçu en URL
-    cmd = DeleteProfileCommand(id=profile_id)
-
-    # 3. On exécute le handler et on gère l'erreur si le profil n'existe pas
-    try:
-        handler.handle(cmd)
+): 
+    service = container.get_profile_service()
+    try: 
+        service.delete(profile_id)
     except ProfileNotFoundError as e:
-        # Si l'UUID n'est pas dans la BDD, renvoyer 404
         raise HTTPException(status_code=404, detail=str(e))
+    
+    return None
+

@@ -27,5 +27,14 @@ class ProfileRead(BaseModel):
     roles: List[str]
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "Bearer"
+
+class ProfileWithToken(BaseModel):
+    profile: ProfileRead
+    token: TokenResponse

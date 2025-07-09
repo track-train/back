@@ -13,9 +13,9 @@ class ProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def delete(self, profile: Profile) -> None:
+    def delete(self, id: UUID) -> None:
         pass
 
     @abstractmethod
-    def find_by_id(self, id: UUID)  -> Profile | None:
+    def find_by_id(self, id: UUID)  -> Optional[Profile]:
         pass

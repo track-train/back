@@ -6,17 +6,14 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-db_url = os.getenv("DATABASE_URL")
+db_url = os.getenv("DATABASE_URL") or "postgresql://user:user@localhost:5432/postgres"
 
 engine = create_engine(
     db_url
 )
-# Session = sessionmaker(bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# def get_session():
-#     return Session()
