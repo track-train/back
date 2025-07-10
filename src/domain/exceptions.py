@@ -2,6 +2,10 @@ class DomainError(Exception):
     """Racine pour toutes les erreurs métier."""
     pass
 
+class InvalidConfirmPasswordError(DomainError):
+    """Confirm password does not match."""
+    pass
+
 class DuplicateProfileError(DomainError):
     """Email already used."""
     pass

@@ -8,7 +8,7 @@ from starlette.status import HTTP_404_NOT_FOUND
 from src.container import container
 from src.domain.lib.jwt_manager import create_access_token
 from src.entrypoints.api.schemas.profile import EmailUpdate, PasswordUpdate, ProfileCreate, ProfileRead, ProfileWithToken, RolesUpdate, TokenResponse, ProfileLogin, ProfilUpdate, CoachProfileRead
-from src.domain.exceptions import DuplicateProfileError, NotFoundError, AuthenticationError
+from src.domain.exceptions import DuplicateProfileError, InvalidConfirmPasswordError, NotFoundError, AuthenticationError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_owner_or_admin
 from src.entrypoints.api.deps.roles import require_roles
 
@@ -25,6 +25,7 @@ async def create_profile(
         profile = service.create(
             email=dto.email,
             raw_password=dto.password,
+            confirm_password=dto.confirm_password,
             name=dto.name or "",
             sex=dto.sex,
             age=dto.age,
@@ -34,6 +35,8 @@ async def create_profile(
             legacy=dto.legacy,
         )
     except DuplicateProfileError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except InvalidConfirmPasswordError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
     token = create_access_token(

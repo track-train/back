@@ -5,7 +5,7 @@ from typing import List, Optional
 from src.domain.model.profile import Profile as DomainProfile
 from src.domain.ports.profile_repository import ProfileRepository
 from src.domain.ports.password_hasher import PasswordHasher
-from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError
+from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError, InvalidConfirmPasswordError
 
 class ProfileService:
     def __init__(self, repo: ProfileRepository, hasher: PasswordHasher):
@@ -17,6 +17,7 @@ class ProfileService:
                *,
                email: str,
                raw_password: str,
+               confirm_password: str,
                name: Optional[str] = None,
                sex: Optional[str] = None,
                age: Optional[int] = None,
@@ -28,6 +29,9 @@ class ProfileService:
                ) -> DomainProfile:
         if self._repo.find_by_email(email):
             raise DuplicateProfileError(f"Profile with email {email} already exists")
+        
+        if raw_password != confirm_password:
+            raise InvalidConfirmPasswordError("Passwords do not match")
 
         hashed = self._hasher.hash(raw_password)
 

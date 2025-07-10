@@ -6,6 +6,7 @@ from typing import List, Optional
 class ProfileCreate(BaseModel):
     email: EmailStr
     password: str
+    confirm_password: str
     name: Optional[str] = None
     sex: Optional[str] = None
     age: Optional[int] = None
