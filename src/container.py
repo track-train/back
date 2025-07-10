@@ -1,8 +1,8 @@
 import os
-from src.adapters.sqlalchemy.repositories.profil import SqlAlchemyProfileRepository
+from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
 from src.adapters.sqlalchemy.db import SessionLocal
 from src.domain.lib.security import BcryptPasswordHasher
-from src.domain.services.profil import ProfileService
+from src.domain.services.profile import ProfileService
 
 class Container:
     def __init__(self, env: str | None = None):

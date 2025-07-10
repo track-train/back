@@ -118,7 +118,7 @@ async def get_me(
     except NotFoundError:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
-            detail=f"Profil not found"
+            detail=f"Profile not found"
         ) 
 
     return ProfileRead.model_validate(profile)
