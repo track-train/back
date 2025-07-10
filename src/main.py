@@ -1,0 +1,17 @@
+from fastapi import FastAPI
+from fastapi.middleware import Middleware
+
+from src.entrypoints.api.routers.profile import router as profile_router
+
+
+
+app = FastAPI(
+    title="API Hexagonale",
+    version="0.1.0",
+)
+
+
+app.include_router(profile_router)
+
+
+

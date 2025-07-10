@@ -13,6 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
 import enum
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -37,16 +38,17 @@ class Profile(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String)
     sex = Column(String)
     age = Column(Integer)
     contact = Column(String)
     pricing = Column(Float)
     description = Column(String)
     legacy = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Roles stored as an array of role names
-    roles = Column(ARRAY(String), nullable=False, default=list)
+    roles = Column(ARRAY(String), nullable=False, default=lambda: ["user"])
 
     # Group relations: users who have accepted invitations
     groups = relationship("Group", secondary=group_users, back_populates="users")
