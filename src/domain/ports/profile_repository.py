@@ -23,3 +23,11 @@ class ProfileRepository(ABC):
     @abstractmethod
     def update(self, profile: Profile) -> Profile:
         pass
+
+    @abstractmethod
+    def find_all_users(self) -> list[Profile]:
+        pass
+    
+    @abstractmethod
+    def find_all_coachs(self) -> list[Profile]:
+        pass

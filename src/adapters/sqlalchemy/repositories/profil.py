@@ -60,3 +60,11 @@ class SqlAlchemyProfileRepository(ProfileRepository):
         self._session.commit()
         self._session.refresh(orm)
         return profil_from_orm(orm) 
+    
+    def find_all_users(self)-> list[DomainProfile]:
+        orms = self._session.query(ORMProfile).filter(ORMProfile.roles.any('user')).all()
+        return [profil_from_orm(orm) for orm in orms] if orms else []
+    
+    def find_all_coachs(self)-> list[DomainProfile]:
+        orms = self._session.query(ORMProfile).filter(ORMProfile.roles.any('coach')).all()
+        return [profil_from_orm(orm) for orm in orms] if orms else []

@@ -42,7 +42,6 @@ class ProfileService:
             pricing=pricing,
             description=description,
             legacy=legacy,
-            # rôle par défaut si non fourni
             roles=roles or ["user"],
             created_at=datetime.utcnow()
         )
@@ -73,6 +72,20 @@ class ProfileService:
             raise NotFoundError(f"Profile with id {profile_id} not found")
         
         return profile
+
+    def get_all_users(self) -> List[DomainProfile]:
+        profiles = self._repo.find_all_users()
+        if not profiles:
+            raise NotFoundError("No profiles found")
+        
+        return profiles
+    
+    def get_all_coachs(self) -> List[DomainProfile]:
+        profiles = self._repo.find_all_coachs()
+        if not profiles:
+            raise NotFoundError("No profiles found")
+        
+        return profiles
     
     def update(self,
                id: UUID,
@@ -112,3 +125,10 @@ class ProfileService:
             raise AuthenticationError("Wrong password")
         profile.password = self._hasher.hash(new_password)
         self._repo.update(profile)
+    
+    def update_roles(self, id: UUID, roles: List[str]) -> DomainProfile:
+        profile = self.get_by_id(id)  
+        if not roles:
+            raise ValueError("Roles cannot be empty")
+        profile.roles = roles
+        return self._repo.update(profile)

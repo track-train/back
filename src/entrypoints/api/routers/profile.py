@@ -7,7 +7,7 @@ from starlette.status import HTTP_404_NOT_FOUND
 
 from src.container import container
 from src.domain.lib.jwt_manager import create_access_token
-from src.entrypoints.api.schemas.profile import EmailUpdate, PasswordUpdate, ProfileCreate, ProfileRead, ProfileWithToken, TokenResponse, ProfileLogin, ProfilUpdate
+from src.entrypoints.api.schemas.profile import EmailUpdate, PasswordUpdate, ProfileCreate, ProfileRead, ProfileWithToken, RolesUpdate, TokenResponse, ProfileLogin, ProfilUpdate, CoachProfileRead
 from src.domain.exceptions import DuplicateProfileError, NotFoundError, AuthenticationError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_owner_or_admin
 from src.entrypoints.api.deps.roles import require_roles
@@ -45,6 +45,28 @@ async def create_profile(
     token_dto = TokenResponse(access_token=token)
 
     return ProfileWithToken(profile=profile_dto, token=token_dto)
+
+@router.get("/users", response_model= list[ProfileRead], status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles("admin", "coach"))])
+async def get_all_user_profiles():
+    service = container.get_profile_service()
+    try:
+        profiles = service.get_all_users()
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    
+    return [ProfileRead.model_validate(profile) for profile in profiles]
+
+@router.get("/coachs", response_model= list[CoachProfileRead], status_code=status.HTTP_200_OK)
+async def get_all_coach_profiles():
+    service = container.get_profile_service()
+    try:
+        profiles = service.get_all_coachs()
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return [CoachProfileRead.model_validate(profile) for profile in profiles]
+
+
 
 @router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_owner_or_admin)])
 async def delete_profile(
@@ -158,3 +180,24 @@ async def patch_password(
         raise HTTPException(status_code=400, detail=str(e))
 
     return None
+
+
+@router.patch(
+    "/{profile_id}/roles",
+    response_model=ProfileRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("admin"))]
+)
+async def patch_roles(
+    profile_id: UUID,
+    dto: RolesUpdate,
+):
+    service = container.get_profile_service()
+    try:
+        updated = service.update_roles(profile_id, dto.roles)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    return ProfileRead.model_validate(updated)

@@ -31,6 +31,20 @@ class ProfileRead(BaseModel):
         "from_attributes": True
     }
 
+class CoachProfileRead(BaseModel):
+    id: UUID
+    name: str
+    sex: str
+    age: int
+    contact: str
+    pricing: float
+    description: str
+    legacy: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "Bearer"
@@ -54,7 +68,6 @@ class ProfilUpdate(BaseModel):
     pricing: Optional[float]     = None
     description: Optional[str]   = None
     legacy: Optional[str]        = None
-    roles: Optional[List[str]]   = None
 
 class EmailUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -63,3 +76,6 @@ class EmailUpdate(BaseModel):
 class PasswordUpdate(BaseModel):
     old_password: str = Field(..., alias="oldPassword")
     new_password: str = Field(..., alias="newPassword")
+
+class RolesUpdate(BaseModel):
+    roles: List[str]
