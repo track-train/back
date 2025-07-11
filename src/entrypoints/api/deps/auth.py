@@ -114,7 +114,7 @@ def require_coach_or_admin_for_user(
     if "coach" not in roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only coaches or admins can assign trainings"
+            detail="Only coaches or admins can do this"
         )
 
     group_svc = container.get_group_service()

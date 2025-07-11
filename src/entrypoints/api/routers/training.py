@@ -11,6 +11,27 @@ from src.container import container
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
+@router.get("/mine", response_model=List[TrainingRead], dependencies=[Depends(get_current_user)])
+def get_my_trainings(user=Depends(get_current_user)):
+    service = container.get_training_service()
+    try:
+        owner_id = UUID(user["sub"])
+        trainings = service.get_all_owner_trainings(owner_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Trainings for user {owner_id} not found")
+
+    return [TrainingRead.model_validate(t) for t in trainings]
+
+@router.get("/user/{target_user_id}", response_model=List[TrainingRead], dependencies=[Depends(require_coach_or_admin_for_user)])
+def get_user_trainings(target_user_id: UUID, user=Depends(get_current_user)):
+    service = container.get_training_service()
+    try:
+        trainings = service.get_all_owner_trainings(target_user_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Trainings for user {target_user_id} not found")
+    
+    return [TrainingRead.model_validate(t) for t in trainings]
+
 @router.get("/{training_id}", response_model=TrainingRead, dependencies=[Depends(require_training_owner_or_coach_or_admin)])
 def get_training(training_id: UUID, user=Depends(get_current_user)):
     service = container.get_training_service()
@@ -20,6 +41,8 @@ def get_training(training_id: UUID, user=Depends(get_current_user)):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Training {training_id} not found")
     
     return TrainingRead.model_validate(training)
+
+
 
 @router.post("/{target_user_id}", response_model=TrainingRead, status_code=201)
 def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require_coach_or_admin_for_user)):
@@ -38,18 +61,6 @@ def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require
     
     return TrainingRead.model_validate(training)
 
-# @router.put("/{training_id}/user/{target_user_id}", response_model=TrainingRead)
-# def update_training(training_id: UUID, dto: TrainingUpdate, target_profile=Depends(require_coach_or_admin_for_user)):
-#     service = container.get_training_service()
-    
-#     try:
-#         training = service.get_training(training_id)
-#         updated_training = training.re(update=dto.model_dump(exclude_unset=True))
-#         updated_training = service.update_training(updated_training)
-#     except NotFoundError:
-#         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Training {training_id} not found")
-    
-#     return TrainingRead.model_validate(updated_training)
 
 @router.patch("/{training_id}/user/{target_user_id}", response_model=TrainingRead)
 def update_training(

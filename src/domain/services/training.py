@@ -56,3 +56,4 @@ class TrainingService:
         return trainings
     
     
+    
