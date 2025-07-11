@@ -64,3 +64,28 @@ def require_group_owner_or_admin(
         )
 
     return group
+
+def require_exercice_owner_or_admin(
+    exercise_id: UUID,
+    user: UserPayload = Depends(get_current_user),
+) -> UserPayload:
+
+    svc = container.get_exercise_service()
+    try:
+        exercise = svc._repo.find_by_id(exercise_id)
+    except Exception:
+        exercise = None
+
+    if not exercise:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exercise {exercise_id} not found"
+        )
+
+    if str(exercise.owner_id) != user["sub"] and "admin" not in user["roles"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: not owner or admin"
+        )
+
+    return exercise
