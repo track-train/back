@@ -1,0 +1,101 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import UUID
+from typing import List
+
+from sqlalchemy.sql.functions import user
+from starlette.status import HTTP_404_NOT_FOUND
+from src.domain.exceptions import NotFoundError
+from src.entrypoints.api.deps.auth import require_group_owner_or_admin, get_current_user, require_exercice_owner_or_admin
+from src.entrypoints.api.schemas.exercise import ExerciseCreate, ExerciseUpdate, ExerciseRead
+from src.entrypoints.api.deps.roles import require_roles
+from src.container import container
+
+router = APIRouter(prefix="/exercises", tags=["exercises"])
+
+@router.post("/", response_model=ExerciseRead, status_code=201, dependencies=[Depends(require_roles("admin", "coach"))])
+def create_exercise(
+    dto: ExerciseCreate,
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+    
+    try: 
+        exercise = service.create_exercise(
+            owner_id=UUID(user["sub"]),
+            name=dto.name,
+            description=dto.description
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    return ExerciseRead.model_validate(exercise)
+
+@router.get("/", response_model=List[ExerciseRead], dependencies=[Depends(get_current_user)])
+def get_exercises(
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+
+    try:
+        exercises = service.get_all_exercises()
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No exercises found")
+
+    return [ExerciseRead.model_validate(exercise) for exercise in exercises]
+
+@router.get("/mine", response_model=List[ExerciseRead], dependencies=[Depends(require_roles("admin", "coach"))])
+def get_my_exercises(
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+    owner_id = UUID(user["sub"])
+
+    try:
+        exercises = service.get_exercises_mine(owner_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No exercises found for your account")
+    
+    return [ExerciseRead.model_validate(exercise) for exercise in exercises]
+
+@router.get("/{exercise_id}", response_model=ExerciseRead, dependencies=[Depends(get_current_user)])
+def get_exercise(
+    exercise_id: UUID,
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+
+    try:
+        exercise = service._repo.find_by_id(exercise_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Exercise not found")
+
+    return ExerciseRead.model_validate(exercise)
+
+@router.patch("/{exercise_id}", response_model=ExerciseRead, dependencies=[Depends(require_exercice_owner_or_admin)])
+def update_exercise(
+    exercise_id: UUID,
+    dto: ExerciseUpdate,
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+    try:
+        updated = service.update_exercise(exercise_id, name=dto.name, description=dto.description)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Exercise not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return ExerciseRead.model_validate(updated)
+
+@router.delete("/{exercise_id}", status_code=204, dependencies=[Depends(require_exercice_owner_or_admin)])
+def delete_exercise(
+    exercise_id: UUID,
+    user=Depends(get_current_user)
+):
+    service = container.get_exercise_service()
+    try:
+        service.delete_exercise(exercise_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Exercise not found")
+    
+
