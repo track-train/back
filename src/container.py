@@ -1,10 +1,17 @@
 import os
+
+from src.adapters.sqlalchemy.db import SessionLocal
 from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
 from src.adapters.sqlalchemy.repositories.group import SqlAlchemyGroupRepository
-from src.adapters.sqlalchemy.db import SessionLocal
+from src.adapters.sqlalchemy.repositories.training import SqlAlchemyTrainingRepository
+from src.adapters.sqlalchemy.repositories.exercise import SqlAlchemyExerciseRepository
+
+
 from src.domain.lib.security import BcryptPasswordHasher
 from src.domain.services.group import GroupService
 from src.domain.services.profile import ProfileService
+from src.domain.services.training import TrainingService
+from src.domain.services.exercise import ExerciseService 
 
 class Container:
     def __init__(self, env: str | None = None):
@@ -32,6 +39,23 @@ class Container:
             repo = SqlAlchemyGroupRepository(session)
         return GroupService(repo)
 
+    def get_training_service(self):
+        if self.env == "dev":
+            # repo = InMemoryTrainingRepository()
+            pass
+        else:
+            session = self.SessionFactory()
+            repo = SqlAlchemyTrainingRepository(session)
+        return TrainingService(repo)
+    
+    def get_exercise_service(self):
+        if self.env == "dev":
+            # repo = InMemoryExerciseRepository()
+            pass
+        else:
+            session = self.SessionFactory()
+            repo = SqlAlchemyExerciseRepository(session)
+        return ExerciseService(repo)
 
 
 
