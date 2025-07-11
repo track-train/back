@@ -35,5 +35,5 @@ def decode_access_token(token: str) -> dict:
     except JWTError as e:
         # jose lèvera ExpiredSignatureError (sous-classe de JWTError) si expiré
         if "Signature has expired" in str(e):
-            raise TokenExpiredError("Le token est expiré") from e
-        raise TokenInvalidError("JWT invalide") from e
+            raise TokenExpiredError("Token expired") from e
+        raise TokenInvalidError("Invalid JWT") from e
