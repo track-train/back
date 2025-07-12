@@ -167,3 +167,20 @@ def require_training_owner_or_coach_or_admin(
         )
 
     return user
+
+def require_training_owner_or_admin(
+    training_id: UUID,
+    user: dict = Depends(get_current_user),
+):
+    svc = container.get_training_service()
+    try:
+        training = svc.get_training(training_id)
+    except NotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Training {training_id} not found")
+
+    sub = user["sub"]
+    roles = user["roles"]
+
+    if str(training.owner_id) != sub and "admin" not in roles:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Access denied: not owner, or admin")
+    return training
