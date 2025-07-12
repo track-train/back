@@ -14,54 +14,54 @@ on:
       - 'feat/*'
       
 jobs:
-  # versioning:
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #     packages: write 
-  #   outputs:
-  #     version: ${{ steps.version.outputs.version }}
-  #   steps:
-  #     - name: Checkout du dépôt
-  #       uses: actions/checkout@v4
+  versioning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
 
-  #     - name: Install toml
-  #       run: |
-  #         python -m pip install toml
+      - name: Install toml
+        run: |
+          python -m pip install toml
 
-  #     - name: Récupérer la version actuelle depuis pyproject.toml
-  #       id: get_version
-  #       run: |
-  #         VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
-  #         echo "VERSION=${VERSION}" >> $GITHUB_ENV
+      - name: Récupérer la version actuelle depuis pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
       
-  #     - name: Log version actuelle
-  #       run: |
-  #         echo "La version actuelle extraite de pyproject.toml est : ${{ env.VERSION }}"
+      - name: Log version actuelle
+        run: |
+          echo "La version actuelle extraite de pyproject.toml est : ${{ env.VERSION }}"
 
-  #     - name: Incrémenter la version en fonction de la branche source de la PR
-  #       id: increment_version
-  #       run: |
-  #         VERSION=${{ env.VERSION }}
-  #         BRANCH_NAME="${GITHUB_HEAD_REF}"  # Branche source de la PR
+      - name: Incrémenter la version en fonction de la branche source de la PR
+        id: increment_version
+        run: |
+          VERSION=${{ env.VERSION }}
+          BRANCH_NAME="${GITHUB_HEAD_REF}"  # Branche source de la PR
 
-  #         # Vérifier le type de commit et incrémenter la version
-  #         case $BRANCH_NAME in
-  #           feat/*)
-  #             VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$2++; $3=0; print $0}')  # Incrémentation mineure pour feat/*
-  #             ;;
-  #           fix/*)
-  #             VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$3++; print $0}')  # Incrémentation de patch pour fix/*
-  #             ;;
-  #           *"breaking change"*)
-  #             VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$1++; $2=0; $3=0; print $0}')  # Incrémentation majeure pour breaking change
-  #             ;;
-  #           *)
-  #             echo "Aucun changement sur la version"
-  #             ;;
-  #         esac
+          # Vérifier le type de commit et incrémenter la version
+          case $BRANCH_NAME in
+            feat/*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$2++; $3=0; print $0}')  # Incrémentation mineure pour feat/*
+              ;;
+            fix/*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$3++; print $0}')  # Incrémentation de patch pour fix/*
+              ;;
+            *"breaking change"*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$1++; $2=0; $3=0; print $0}')  # Incrémentation majeure pour breaking change
+              ;;
+            *)
+              echo "Aucun changement sur la version"
+              ;;
+          esac
 
-  #         echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Mettre à jour la version dans pyproject.toml
         id: version
@@ -145,4 +145,4 @@ jobs:
 
 # add test job
 
-# test runing pipline
+# test sds
