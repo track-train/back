@@ -21,3 +21,31 @@ class TrainingRead(BaseModel):
 class TrainingUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+
+class TaskRead(BaseModel):
+    id: UUID
+    exercise_name: str
+    rest_time: Optional[int]
+    repetitions: Optional[int]
+    set_number: Optional[int]
+    method: Optional[str]
+    rir: Optional[int]
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class TaskCreate(BaseModel):
+    exercise_name: str
+    rest_time: Optional[int] = None
+    repetitions: Optional[int] = None
+    set_number: Optional[int] = None
+    method: Optional[str] = None
+    rir: Optional[int] = None
+
+class TaskUpdate(BaseModel):
+    exercise_name: Optional[str] = None
+    rest_time: Optional[int] = None
+    repetitions: Optional[int] = None
+    set_number: Optional[int] = None
+    method: Optional[str] = None
+    rir: Optional[int] = None
