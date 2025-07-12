@@ -7,6 +7,7 @@ from datetime import datetime
 class Validate:
     id: UUID = field(default_factory=uuid4)
     task_id: UUID = field(default_factory=uuid4)
+    exercise_name: str = ""
     updated_at: datetime = field(default_factory=datetime.utcnow)
     rest_time: Optional[int] = None
     repetitions: Optional[int] = None
@@ -30,7 +31,7 @@ class Validate:
 class Task:
     id: UUID = field(default_factory=uuid4)
     training_id: UUID = field(default_factory=uuid4)
-    exercise_id: UUID = field(default_factory=uuid4)
+    exercise_name: str = ""
     rest_time: Optional[int] = None
     repetitions: Optional[int] = None
     set_number: Optional[int] = None
@@ -43,8 +44,8 @@ class Task:
         return {
             "id": str(self.id),
             "training_id": str(self.training_id),
-            "exercise_id": str(self.exercise_id),
             "rest_time": self.rest_time,
+            "exercise_name": self.exercise_name,
             "repetitions": self.repetitions,
             "set_number": self.set_number,
             "method": self.method,

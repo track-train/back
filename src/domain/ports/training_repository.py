@@ -24,3 +24,24 @@ class TrainingRepository(ABC):
     def find_all_owner_trainings(self, owner_id: UUID) -> Optional[List[Training]]:
         pass
 
+# tasks abstract methods
+
+    @abstractmethod
+    def add_task(self, task: Task) -> Optional[Task]:
+        pass
+
+    @abstractmethod
+    def find_task_by_id(self, id: UUID) -> Optional[Task]:
+        pass
+
+    @abstractmethod
+    def delete_task(self, id: UUID) -> None:
+        pass
+
+    @abstractmethod
+    def update_task(self, task: Task) -> Optional[Task]:
+        pass
+
+    @abstractmethod
+    def find_tasks_by_training_id(self, training_id: UUID) -> Optional[List[Task]]:
+        pass
