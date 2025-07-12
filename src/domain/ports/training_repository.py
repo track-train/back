@@ -45,3 +45,26 @@ class TrainingRepository(ABC):
     @abstractmethod
     def find_tasks_by_training_id(self, training_id: UUID) -> Optional[List[Task]]:
         pass
+
+# validate abstract methods
+
+    @abstractmethod
+    def add_validate(self, validate: Validate) -> Optional[Validate]:
+        pass
+
+    @abstractmethod
+    def find_validate_by_task_id(self, id: UUID) -> Optional[Validate]:
+        pass
+
+    @abstractmethod
+    def delete_validate(self, id: UUID) -> None:
+        pass
+
+    @abstractmethod
+    def find_validate_by_id(self, id: UUID) -> Optional[Validate]:
+        pass
+
+    @abstractmethod
+    def find_all_validates_by_training_id(self, training_id: UUID) -> Optional[List[Validate]]:
+        pass
+

@@ -140,5 +140,47 @@ class TrainingService:
             return []
         return tasks
     
-    
-    
+    # validate methods service
+
+    def create_validate(
+        self,
+        task_id: UUID,
+        rest_time: Optional[int] = None,
+        repetitions: Optional[int] = None,
+        set_number: Optional[int] = None,
+        rir: Optional[int] = None,
+    ) -> DomainValidate:
+        task = self._repo.find_task_by_id(task_id)
+        if not task:
+            raise NotFoundError(f"Task {task_id} not found")
+
+        validate = DomainValidate(
+            id=uuid4(),
+            task_id=task_id,
+            exercise_name=task.exercise_name,  # Assuming exercise_name is needed
+            rest_time=rest_time,
+            repetitions=repetitions,
+            set_number=set_number,
+            rir=rir,
+            updated_at=datetime.utcnow(),
+            succeeded_at=datetime.utcnow(),  # This can be set later when validation is successful
+        )
+
+        return self._repo.add_validate(validate)
+
+    def get_validates_for_task(self, task_id: UUID) -> List[DomainValidate]:
+        validates = self._repo.find_validate_by_task_id(task_id)
+        if not validates:
+            return []
+        return validates
+
+    def delete_validate(self, validate_id: UUID) -> None:
+        validate = self._repo.find_validate_by_id(validate_id)
+        if not validate:
+            raise NotFoundError(f"Validation {validate_id} not found")
+        self._repo.delete_validate(validate_id)
+
+    def get_validate_by_training_id(self, training_id: UUID) -> List[DomainValidate]:
+        if not self._repo.find_by_id(training_id):
+          raise NotFoundError(f"Training {training_id} not found")
+        return self._repo.find_all_validates_by_training_id(training_id)
