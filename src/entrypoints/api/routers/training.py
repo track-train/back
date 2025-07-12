@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 from sqlalchemy.sql.functions import user
 
-from src.entrypoints.api.deps.auth import get_current_user, require_coach_or_admin_for_user, require_training_owner_or_coach_or_admin
-from src.entrypoints.api.schemas.training import TrainingRead, TrainingCreate, TrainingUpdate, TaskRead, TaskCreate, TaskUpdate
+from src.entrypoints.api.deps.auth import get_current_user, require_coach_or_admin_for_user, require_training_owner_or_coach_or_admin, require_training_owner_or_admin
+from src.entrypoints.api.schemas.training import TrainingRead, TrainingCreate, TrainingUpdate, TaskRead, TaskCreate, TaskUpdate, ValidateCreate, ValidateRead
 from src.domain.exceptions import NotFoundError
 from src.container import container
 
@@ -69,9 +69,9 @@ def update_training(
     dto: TrainingUpdate,
     _ = Depends(require_coach_or_admin_for_user),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        updated = svc.update_training(
+        updated = service.update_training(
             training_id=training_id,
             name=dto.name,
             description=dto.description,
@@ -105,9 +105,9 @@ def list_tasks(
     training_id: UUID,
     _ = Depends(require_training_owner_or_coach_or_admin),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        tasks = svc.list_tasks_for_training(training_id)
+        tasks = service.list_tasks_for_training(training_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -127,9 +127,9 @@ def create_task(
     dto: TaskCreate,
     _ = Depends(require_coach_or_admin_for_user),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        task = svc.create_task(
+        task = service.create_task(
             training_id=training_id,
             exercise_name=dto.exercise_name,
             rest_time=dto.rest_time,
@@ -156,9 +156,9 @@ def get_task(
     task_id: UUID,
     _ = Depends(require_training_owner_or_coach_or_admin),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        task = svc.get_task(task_id)
+        task = service.get_task(task_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -178,9 +178,9 @@ def update_task(
     dto: TaskUpdate,
     _ = Depends(require_coach_or_admin_for_user),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        updated = svc.update_task(
+        updated = service.update_task(
             task_id=task_id,
             exercise_name=dto.exercise_name,
             rest_time=dto.rest_time,
@@ -207,12 +207,90 @@ def delete_task(
     task_id: UUID,
     _ = Depends(require_coach_or_admin_for_user),
 ):
-    svc = container.get_training_service()
+    service = container.get_training_service()
     try:
-        svc.delete_task(task_id)
+        service.delete_task(task_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task {task_id} not found"
         )
     return None
+
+# Router for validate Operations
+
+@router.post(
+    "/{training_id}/tasks/{task_id}/validations",
+    response_model=ValidateRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_training_owner_or_admin)]
+)
+def create_validation(
+    training_id: UUID,
+    task_id: UUID,
+    dto: ValidateCreate,
+    user=Depends(get_current_user),
+):
+    service = container.get_training_service()
+    try:
+        v = service.create_validate(
+            task_id=task_id,
+            rest_time=dto.rest_time,
+            repetitions=dto.repetitions,
+            set_number=dto.set_number,
+            rir=dto.rir,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    return ValidateRead.model_validate(v)
+
+
+@router.get(
+    "/{training_id}/tasks/{task_id}/validations",
+    response_model=List[ValidateRead],
+    dependencies=[Depends(require_training_owner_or_coach_or_admin)]
+)
+def list_validations(
+    training_id: UUID,
+    task_id: UUID,
+    user=Depends(get_current_user),
+):
+    service = container.get_training_service()
+    try:
+        return service.get_validates_for_task(task_id)
+    except NotFoundError:
+        return []
+    
+@router.delete(
+    "/{training_id}/tasks/{task_id}/validations/{validation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_training_owner_or_admin)]
+)
+def delete_validation(
+    training_id: UUID,
+    task_id: UUID,
+    validation_id: UUID,
+    user=Depends(get_current_user),
+):
+    service = container.get_training_service()
+    try:
+        service.delete_validate(validation_id)
+    except NotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
+    
+
+@router.get(
+    "/{training_id}/validations",
+    response_model=List[ValidateRead],
+    dependencies=[Depends(require_training_owner_or_coach_or_admin)]
+)
+def get_validations_by_training(
+    training_id: UUID,
+    user=Depends(get_current_user),
+):
+    service = container.get_training_service()
+    try:
+        return service.get_validate_by_training_id(training_id)
+    except NotFoundError:
+        return []

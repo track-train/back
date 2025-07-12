@@ -49,3 +49,23 @@ class TaskUpdate(BaseModel):
     set_number: Optional[int] = None
     method: Optional[str] = None
     rir: Optional[int] = None
+
+
+class ValidateRead(BaseModel):
+    id: UUID
+    task_id: UUID
+    rest_time: Optional[int]
+    repetitions: Optional[int]
+    set_number: Optional[int]
+    rir: Optional[int]
+    updated_at: datetime
+    succeeded_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ValidateCreate(BaseModel):
+    rest_time: Optional[int] = None
+    repetitions: Optional[int] = None
+    set_number: Optional[int] = None
+    rir: Optional[int] = None
+
