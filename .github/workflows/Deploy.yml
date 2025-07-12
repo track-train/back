@@ -1,12 +1,17 @@
 name: Track&Train Docker CI
 
 on:
-  pull_request:
-    types: [closed]
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - main
+  #     - develop
+  #     - 'feat/*'  
+  push:
     branches:
       - main
       - develop
-      - 'feat/*'  
+      - 'feat/*'
       
 jobs:
   versioning:
