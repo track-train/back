@@ -1,0 +1,140 @@
+name: Track&Train Docker CI
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - develop
+      - 'feat/*'  
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Install toml
+        run: |
+          python -m pip install toml
+
+      - name: Récupérer la version actuelle depuis pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+      
+      - name: Log version actuelle
+        run: |
+          echo "La version actuelle extraite de pyproject.toml est : ${{ env.VERSION }}"
+
+      - name: Incrémenter la version en fonction de la branche source de la PR
+        id: increment_version
+        run: |
+          VERSION=${{ env.VERSION }}
+          BRANCH_NAME="${GITHUB_HEAD_REF}"  # Branche source de la PR
+
+          # Vérifier le type de commit et incrémenter la version
+          case $BRANCH_NAME in
+            feat/*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$2++; $3=0; print $0}')  # Incrémentation mineure pour feat/*
+              ;;
+            fix/*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$3++; print $0}')  # Incrémentation de patch pour fix/*
+              ;;
+            *"breaking change"*)
+              VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$1++; $2=0; $3=0; print $0}')  # Incrémentation majeure pour breaking change
+              ;;
+            *)
+              echo "Aucun changement sur la version"
+              ;;
+          esac
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Mettre à jour la version dans pyproject.toml
+        id: version
+        run: |
+          python -c "import toml; data = toml.load('pyproject.toml'); data['project']['version'] = '${{ env.VERSION }}'; toml.dump(data, open('pyproject.toml', 'w'))"
+          echo "version=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Commit and push the updated pyproject.toml
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Ajouter les changements du fichier pyproject.toml
+          git add pyproject.toml
+          
+          # Committer les changements
+          git commit -m "Update version to ${{ steps.increment_version.outputs.version }}"
+          
+          # Pousser le commit vers la branche actuelle
+          git push origin ${{ github.ref }}
+
+  setup-docker-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      docker_tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Définir le tag Docker en fonction de la branche de destination
+        id: set-tag
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tag=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "tag=pre-prod" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-deploy-image:
+    needs: [versioning, setup-docker-tag]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier la version
+        run: |
+          echo "Version: ${{ needs.versioning.outputs.version }}"
+
+      - name: Valider le tag généré
+        run: |
+          TAG="${{ needs.setup-docker-tag.outputs.docker_tag }}"
+          if [[ ! "$TAG" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+            echo "Invalid tag format: $TAG"
+            exit 1
+          fi
+
+      - name: Connexion à GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Activer Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Construire et pousser l'image Docker
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64/v8
+          tags: |
+            ghcr.io/track-train/api:${{ needs.versioning.outputs.version }}
+            ghcr.io/track-train/api:latest
+            ghcr.io/track-train/api:${{ needs.setup-docker-tag.outputs.docker_tag }}
+
+
+# add test job waiting test
