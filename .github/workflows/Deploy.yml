@@ -1,18 +1,12 @@
 name: Track&Train Docker CI
 
 on:
-  # pull_request:
-  #   types: [closed]
-  #   branches:
-  #     - main
-  #     - develop
-  #     - 'feat/*'  
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
       - develop
-      - 'feat/*'
-      
+      - 'feat/*'  
 jobs:
   versioning:
     runs-on: ubuntu-latest
@@ -100,7 +94,7 @@ jobs:
           fi
 
   build-and-deploy-image:
-    needs: [ setup-docker-tag]
+    needs: [versioning, setup-docker-tag]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -144,5 +138,3 @@ jobs:
 
 
 # add test job
-
-# test sds
