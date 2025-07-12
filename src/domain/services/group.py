@@ -5,8 +5,7 @@ from typing import List, Optional
 from src.domain.model.group import Group as DomainGroup
 from src.domain.model.profile import Profile as DomainProfile
 from src.domain.ports.group_repository import GroupRepository
-from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError, InvalidConfirmPasswordError
-
+from src.domain.exceptions import  NotFoundError
 
 class GroupService:
     def __init__(self, repo: GroupRepository):

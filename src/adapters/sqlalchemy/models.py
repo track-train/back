@@ -125,7 +125,6 @@ class Exercise(Base):
     description = Column(String)
 
     owner = relationship("Profile", back_populates="exercises")
-    tasks = relationship("Task", back_populates="exercise")
 
 class Training(Base):
     __tablename__ = 'trainings'
@@ -142,7 +141,7 @@ class Task(Base):
     __tablename__ = 'tasks'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     training_id = Column(UUID(as_uuid=True), ForeignKey('trainings.id'), nullable=False)
-    exercise_id = Column(UUID(as_uuid=True), ForeignKey('exercises.id'), nullable=False)
+    exercise_name = Column(String, nullable=False)
     rest_time = Column(Integer)
     repetitions = Column(Integer)
     set_number = Column(Integer)
@@ -152,7 +151,6 @@ class Task(Base):
     validate = Column(String)
 
     training = relationship("Training", back_populates="tasks")
-    exercise = relationship("Exercise", back_populates="tasks")
     validations = relationship("Validation", back_populates="task")
 
 class Validation(Base):
