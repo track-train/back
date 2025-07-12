@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from src.domain.exceptions import NotFoundError
 
-from src.adapters.sqlalchemy.models import Exercise as ORMExercise, Training as ORMTraining, Task as ORMTask
+from src.adapters.sqlalchemy.models import Training as ORMTraining, Task as ORMTask, Validation as ORMValidate
 from src.domain.model.training import Validate as DomainValidate, Task as DomainTask, Training as DomainTraining
 from src.domain.ports.training_repository import TrainingRepository
 from uuid import UUID
@@ -12,7 +12,6 @@ def validate_from_orm(orm_validate) -> DomainValidate:
     return DomainValidate(
         id=orm_validate.id,
         task_id=orm_validate.task_id,
-        exercise_name=orm_validate.exercise_name,
         rest_time=orm_validate.rest_time,
         repetitions=orm_validate.repetitions,
         set_number=orm_validate.set_number,
@@ -116,3 +115,36 @@ class SqlAlchemyTrainingRepository(TrainingRepository):
         orms = self._session.query(ORMTask).filter(ORMTask.training_id == training_id).all()
         return [task_from_orm(orm) for orm in orms] if orms else []
 
+# validate methods
+    def add_validate(self, validate: DomainValidate) -> Optional[DomainValidate]:
+        data = validate.to_orm_dict()
+        orm = ORMValidate(**data)
+        self._session.add(orm)
+        self._session.commit()
+        self._session.refresh(orm)
+        return validate_from_orm(orm) if orm else None
+
+    def find_validate_by_task_id(self, task_id: UUID) -> Optional[List[DomainValidate]]:
+        orm = self._session.query(ORMValidate).filter(ORMValidate.task_id == task_id).all()
+        return [validate_from_orm(orm) for orm in orm] if orm else None
+
+    def delete_validate(self, id: UUID) -> None:
+        orm = self._session.get(ORMValidate, id)
+        if not orm:
+            return
+        self._session.delete(orm)
+        self._session.commit()
+    
+    def find_validate_by_id(self, id: UUID) -> Optional[DomainValidate]:
+        orm = self._session.get(ORMValidate, id)
+        return validate_from_orm(orm) if orm else None
+    
+    def find_all_validates_by_training_id(self, training_id: UUID) -> list[DomainValidate]:
+        orms = (
+            self._session
+                .query(ORMValidate)
+                .join(ORMTask, ORMValidate.task_id == ORMTask.id)
+                .filter(ORMTask.training_id == training_id)
+                .all()
+        )
+        return [validate_from_orm(v) for v in orms]
