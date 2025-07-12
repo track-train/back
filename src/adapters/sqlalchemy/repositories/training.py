@@ -12,6 +12,7 @@ def validate_from_orm(orm_validate) -> DomainValidate:
     return DomainValidate(
         id=orm_validate.id,
         task_id=orm_validate.task_id,
+        exercise_name=orm_validate.exercise_name,
         rest_time=orm_validate.rest_time,
         repetitions=orm_validate.repetitions,
         set_number=orm_validate.set_number,
@@ -24,7 +25,7 @@ def task_from_orm(orm_task) -> DomainTask:
     return DomainTask(
         id=orm_task.id,
         training_id=orm_task.training_id,
-        exercise_id=orm_task.exercise_id,
+        exercise_name=orm_task.exercise_name,
         rest_time=orm_task.rest_time,
         repetitions=orm_task.repetitions,
         set_number=orm_task.set_number,
@@ -81,4 +82,37 @@ class SqlAlchemyTrainingRepository(TrainingRepository):
         orms = self._session.query(ORMTraining).filter(ORMTraining.owner_id == owner_id).all()
         return [training_from_orm(orm) for orm in orms] if orms else []
     
+    # CRUD Operation for Task
+
+    def add_task(self, task: DomainTask) -> Optional[DomainTask]:
+        data = task.to_orm_dict()
+        orm = ORMTask(**data)
+        self._session.add(orm)
+        self._session.commit()
+        self._session.refresh(orm)
+        return task_from_orm(orm) if orm else None
+
+    def find_task_by_id(self, id: UUID) -> Optional[DomainTask]:
+        orm = self._session.get(ORMTask, id)
+        return task_from_orm(orm) if orm else None
+
+    def delete_task(self, id: UUID) -> None:
+        orm = self._session.get(ORMTask, id)
+        if not orm:
+            return
+        self._session.delete(orm)
+        self._session.commit()
+
+    def update_task(self, task: DomainTask) -> Optional[DomainTask]:
+        orm = self._session.get(ORMTask, task.id)
+        if not orm:
+            raise NotFoundError(f"Task {task.id} not found")
+        for key, value in task.to_orm_dict().items():
+            setattr(orm, key, value)
+        self._session.commit()
+        return task_from_orm(orm) if orm else None
+    
+    def find_tasks_by_training_id(self, training_id: UUID) -> Optional[List[DomainTask]]:
+        orms = self._session.query(ORMTask).filter(ORMTask.training_id == training_id).all()
+        return [task_from_orm(orm) for orm in orms] if orms else []
 
