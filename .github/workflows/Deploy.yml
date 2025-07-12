@@ -100,7 +100,7 @@ jobs:
           fi
 
   build-and-deploy-image:
-    needs: [versioning, setup-docker-tag]
+    needs: [ setup-docker-tag]
     runs-on: ubuntu-latest
     permissions:
       contents: read
