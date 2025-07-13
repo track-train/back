@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 
 from src.container import container
-from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate
+from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate, MealPlanCreate, MealPlanRead, MealPlanUpdate
 from src.domain.exceptions import NotFoundError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_coach_for_user_or_admin, require_owner_coach_for_user_or_admin
 from src.container import container
@@ -161,3 +161,104 @@ def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
         svc.delete_macro_plan(plan_id)
     except NotFoundError:
         raise HTTPException(HTTP_404_NOT_FOUND, "MacroPlan not found")
+    
+# Meal Plan endpoints
+
+@router.get(
+    "/{diet_id}/user/{target_user_id}/meal_plans",
+    response_model=List[MealPlanRead],
+    dependencies=[Depends(require_owner_coach_for_user_or_admin)]
+)
+def list_meal_plans(diet_id: UUID, target_user_id: UUID):
+    svc = container.get_diet_service()
+    plans = svc.get_meal_plans_by_diet(diet_id)
+    return [MealPlanRead.model_validate(p) for p in plans]
+
+@router.get(
+    "/{diet_id}/user/{target_user_id}/meal_plans/{plan_id}",
+    response_model=MealPlanRead,
+    dependencies=[Depends(require_owner_coach_for_user_or_admin)]
+)
+def get_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+    svc = container.get_diet_service()
+    try:
+        mp = svc.get_meal_plan_by_id(plan_id)
+    except NotFoundError:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail=f"MealPlan {plan_id} not found"
+        )
+    return MealPlanRead.model_validate(mp)
+
+@router.post(
+    "/{diet_id}/user/{target_user_id}/meal_plans",
+    response_model=MealPlanRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def create_meal_plan(
+    diet_id: UUID,
+    target_user_id: UUID,
+    dto: MealPlanCreate
+):
+    svc = container.get_diet_service()
+    try:
+        mp = svc.create_meal_plan(
+            diet_id=diet_id,
+            name=dto.name,
+            meals=dto.meals,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return MealPlanRead.model_validate(mp)
+
+@router.get(
+    "/meal_plans/mine",
+    response_model=List[MealPlanRead],
+    dependencies=[Depends(get_current_user)]
+)
+def list_my_meal_plans(user = Depends(get_current_user)):
+    svc = container.get_diet_service()
+    user_id = UUID(user["sub"])
+    plans = svc.get_meal_plans_by_user(user_id)
+    return [MealPlanRead.model_validate(p) for p in plans]
+
+@router.patch(
+    "/{diet_id}/user/{target_user_id}/meal_plans/{plan_id}",
+    response_model=MealPlanRead,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def update_meal_plan(
+    diet_id: UUID,
+    target_user_id: UUID,
+    plan_id: UUID,
+    dto: MealPlanUpdate
+):
+    svc = container.get_diet_service()
+    try:
+        updated = svc.update_meal_plan(
+            plan_id=plan_id,
+            name=dto.name,
+            meals=dto.meals,
+        )
+    except NotFoundError:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail="MealPlan not found"
+        )
+    return MealPlanRead.model_validate(updated)
+
+@router.delete(
+    "/{diet_id}/user/{target_user_id}/meal_plans/{plan_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def delete_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+    svc = container.get_diet_service()
+    try:
+        svc.delete_meal_plan(plan_id)
+    except NotFoundError:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail="MealPlan not found"
+        )

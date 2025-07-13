@@ -50,3 +50,25 @@ class MacroPlanUpdate(BaseModel):
     fiber: Optional[float] = None
     water: Optional[float] = None
     kilocalorie: Optional[float] = None
+
+class MealItemRead(BaseModel):
+    timing: str
+    food: str
+
+    model_config = {"from_attributes": True}
+
+class MealPlanCreate(BaseModel):
+    name: str
+    meals: List[MealItemRead]
+
+class MealPlanRead(BaseModel):
+    id: UUID
+    diet_id: UUID
+    name: str
+    meals: List[MealItemRead]
+
+    model_config = {"from_attributes": True}
+
+class MealPlanUpdate(BaseModel):
+    name: Optional[str] = None
+    meals: Optional[List[MealItemRead]] = None
