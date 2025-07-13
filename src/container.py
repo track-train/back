@@ -5,6 +5,7 @@ from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileReposi
 from src.adapters.sqlalchemy.repositories.group import SqlAlchemyGroupRepository
 from src.adapters.sqlalchemy.repositories.training import SqlAlchemyTrainingRepository
 from src.adapters.sqlalchemy.repositories.exercise import SqlAlchemyExerciseRepository
+from src.adapters.sqlalchemy.repositories.diet import SqlAlchemyDietRepository
 
 
 from src.domain.lib.security import BcryptPasswordHasher
@@ -12,6 +13,7 @@ from src.domain.services.group import GroupService
 from src.domain.services.profile import ProfileService
 from src.domain.services.training import TrainingService
 from src.domain.services.exercise import ExerciseService 
+from src.domain.services.diet import DietService
 
 class Container:
     def __init__(self, env: str | None = None):
@@ -56,6 +58,15 @@ class Container:
             session = self.SessionFactory()
             repo = SqlAlchemyExerciseRepository(session)
         return ExerciseService(repo)
+
+    def get_diet_service(self):
+        if self.env == "dev":
+            # repo = InMemoryDietRepository()
+            pass
+        else:
+            session = self.SessionFactory()
+            repo = SqlAlchemyDietRepository(session)
+        return DietService(repo)
 
 
 
