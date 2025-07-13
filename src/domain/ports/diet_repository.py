@@ -50,6 +50,30 @@ class DietRepository(ABC):
     def update_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
         pass
 
+# Meal Plan methods
 
+    @abstractmethod
+    def add_meal_plan(self, meal_plan: DomainMealPlan) -> DomainMealPlan:
+        pass    
+
+    @abstractmethod
+    def find_meal_plan_by_id(self, id: UUID) -> Optional[DomainMealPlan]:
+        pass
+    
+    @abstractmethod
+    def find_meal_plans_by_user_id(self, user_id: UUID) -> List[DomainMealPlan]:
+        pass
+
+    @abstractmethod
+    def find_meal_plans_by_diet_id(self, diet_id: UUID) -> List[DomainMealPlan]:
+        pass
+
+    @abstractmethod
+    def update_meal_plan(self, meal_plan: DomainMealPlan) -> DomainMealPlan:
+        pass
+
+    @abstractmethod
+    def delete_meal_plan(self, id: UUID) -> None:
+        pass
 
     

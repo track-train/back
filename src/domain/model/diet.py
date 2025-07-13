@@ -46,18 +46,23 @@ class MacroPlan:
         }
 
 @dataclass
+class MealItem:
+    timing: str
+    food: str
+
+@dataclass
 class MealPlan:
     id: UUID = field(default_factory=uuid4)
     diet_id: UUID = field(default_factory=uuid4)
     name: str = ""
-    meals: Optional[str] = None
+    meals: List[MealItem] = field(default_factory=list)
 
     def to_orm_dict(self) -> dict:
         return {
             "id": str(self.id),
             "diet_id": str(self.diet_id),
             "name": self.name,
-            "meals": self.meals,
+            "meals": [meal.__dict__ for meal in self.meals],
         }
 
 
