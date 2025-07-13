@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 
 from src.container import container
-from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate
+from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate
 from src.domain.exceptions import NotFoundError
-from src.entrypoints.api.deps.auth import get_current_user, require_coach_or_admin_for_user
+from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_coach_for_user_or_admin, require_owner_coach_for_user_or_admin
 from src.container import container
 
 router = APIRouter(prefix="/diets", tags=["diets"])
@@ -19,7 +19,7 @@ def get_my_diets(user=Depends(get_current_user)):
     return [DietRead.model_validate(d) for d in diets]
 
 @router.get("/user/{target_user_id}", response_model=List[DietRead],
-            dependencies=[Depends(require_coach_or_admin_for_user)])
+            dependencies=[Depends(require_coach_for_user_or_admin)])
 def get_user_diets(target_user_id: UUID):
     svc = container.get_diet_service()
     diets = svc.list_owner_diets(target_user_id)
@@ -29,7 +29,7 @@ def get_user_diets(target_user_id: UUID):
 @router.post("/{target_user_id}", response_model=DietRead, status_code=status.HTTP_201_CREATED)
 def create_diet(target_user_id: UUID,
                 dto: DietCreate,
-                _=Depends(require_coach_or_admin_for_user)):
+                _=Depends(require_coach_for_user_or_admin)):
     svc = container.get_diet_service()
     try:
         d = svc.create_diet(
@@ -45,7 +45,7 @@ def create_diet(target_user_id: UUID,
 def update_diet(diet_id: UUID,
                 target_user_id: UUID,
                 dto: DietUpdate,
-                _=Depends(require_coach_or_admin_for_user)):
+                _=Depends(require_coach_for_user_or_admin)):
     svc = container.get_diet_service()
     try:
         updated = svc.update_diet(
@@ -59,9 +59,105 @@ def update_diet(diet_id: UUID,
 
 @router.delete("/{diet_id}/user/{target_user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_diet(diet_id: UUID,
-                _=Depends(require_coach_or_admin_for_user)):
+                _=Depends(require_coach_for_user_or_admin)):
     svc = container.get_diet_service()
     try:
         svc.delete_diet(diet_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Diet not found")
+
+# Macro Plan endpoints
+
+@router.get(
+    "/{diet_id}/user/{target_user_id}/macro_plans",
+    response_model=List[MacroPlanRead],
+    dependencies=[Depends(require_owner_coach_for_user_or_admin)]
+)
+def list_macro_plans(diet_id: UUID, target_user_id: UUID):
+    svc = container.get_diet_service()
+    plans = svc.get_macro_plans_for_diet(diet_id)
+    return [MacroPlanRead.model_validate(p) for p in plans]
+
+@router.get(
+    "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",
+    response_model=MacroPlanRead,
+    dependencies=[Depends(require_owner_coach_for_user_or_admin)]
+)
+def get_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+    svc = container.get_diet_service()
+    try:
+        p = svc.get_macro_plan(plan_id)
+    except NotFoundError:
+        raise HTTPException(HTTP_404_NOT_FOUND, f"MacroPlan {plan_id} not found")
+    return MacroPlanRead.model_validate(p)
+
+@router.post(
+    "/{diet_id}/user/{target_user_id}/macro_plans",
+    response_model=MacroPlanRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def create_macro_plan(
+    diet_id: UUID,
+    target_user_id: UUID,
+    dto: MacroPlanCreate
+):
+    svc = container.get_diet_service()
+    try:
+        p = svc.create_macro_plan(
+            diet_id=diet_id,
+            name=dto.name,
+            carbohydrates=dto.carbohydrates,
+            lipids=dto.lipids,
+            protein=dto.protein,
+            fiber=dto.fiber,
+            water=dto.water,
+            kilocalorie=dto.kilocalorie,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return MacroPlanRead.model_validate(p)
+
+@router.get("/macro_plans/mine", response_model=List[MacroPlanRead], dependencies=[Depends(get_current_user)])
+def list_my_macro_plans(user: UserPayload = Depends(get_current_user)):
+    svc = container.get_diet_service()
+    return [MacroPlanRead.model_validate(p) for p in svc.get_macro_plans_by_user_id(user["sub"])]
+
+@router.patch(
+    "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",
+    response_model=MacroPlanRead,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def update_macro_plan(
+    diet_id: UUID,
+    target_user_id: UUID,
+    plan_id: UUID,
+    dto: MacroPlanUpdate
+):
+    svc = container.get_diet_service()
+    try:
+        updated = svc.update_macro_plan(
+            plan_id=plan_id,
+            name=dto.name,
+            carbohydrates=dto.carbohydrates,
+            lipids=dto.lipids,
+            protein=dto.protein,
+            fiber=dto.fiber,
+            water=dto.water,
+            kilocalorie=dto.kilocalorie,
+        )
+    except NotFoundError:
+        raise HTTPException(HTTP_404_NOT_FOUND, "MacroPlan not found")
+    return MacroPlanRead.model_validate(updated)
+
+@router.delete(
+    "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_coach_for_user_or_admin)]
+)
+def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+    svc = container.get_diet_service()
+    try:
+        svc.delete_macro_plan(plan_id)
+    except NotFoundError:
+        raise HTTPException(HTTP_404_NOT_FOUND, "MacroPlan not found")

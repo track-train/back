@@ -19,3 +19,34 @@ class DietRead(BaseModel):
 class DietUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+
+class MacroPlanCreate(BaseModel):
+    name: str
+    carbohydrates: float
+    lipids: float
+    protein: float
+    fiber: float
+    water: float
+    kilocalorie: float
+
+class MacroPlanRead(BaseModel):
+    id: UUID
+    diet_id: UUID
+    name: str
+    carbohydrates: float
+    lipids: float
+    protein: float
+    fiber: float
+    water: float
+    kilocalorie: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+class MacroPlanUpdate(BaseModel):
+    name: Optional[str] = None
+    carbohydrates: Optional[float] = None
+    lipids: Optional[float] = None
+    protein: Optional[float] = None
+    fiber: Optional[float] = None
+    water: Optional[float] = None
+    kilocalorie: Optional[float] = None
