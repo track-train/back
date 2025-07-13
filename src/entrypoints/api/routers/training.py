@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 from sqlalchemy.sql.functions import user
 
-from src.entrypoints.api.deps.auth import get_current_user, require_coach_or_admin_for_user, require_training_owner_or_coach_or_admin, require_training_owner_or_admin
+from src.entrypoints.api.deps.auth import get_current_user, require_coach_for_user_or_admin, require_training_owner_or_coach_or_admin, require_training_owner_or_admin
 from src.entrypoints.api.schemas.training import TrainingRead, TrainingCreate, TrainingUpdate, TaskRead, TaskCreate, TaskUpdate, ValidateCreate, ValidateRead
 from src.domain.exceptions import NotFoundError
 from src.container import container
@@ -22,7 +22,7 @@ def get_my_trainings(user=Depends(get_current_user)):
 
     return [TrainingRead.model_validate(t) for t in trainings]
 
-@router.get("/user/{target_user_id}", response_model=List[TrainingRead], dependencies=[Depends(require_coach_or_admin_for_user)])
+@router.get("/user/{target_user_id}", response_model=List[TrainingRead], dependencies=[Depends(require_coach_for_user_or_admin)])
 def get_user_trainings(target_user_id: UUID, user=Depends(get_current_user)):
     service = container.get_training_service()
     try:
@@ -45,7 +45,7 @@ def get_training(training_id: UUID, user=Depends(get_current_user)):
 
 
 @router.post("/{target_user_id}", response_model=TrainingRead, status_code=201)
-def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require_coach_or_admin_for_user)):
+def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require_coach_for_user_or_admin)):
     service = container.get_training_service()
     
     try:
@@ -67,7 +67,7 @@ def update_training(
     training_id: UUID,
     target_user_id: UUID,
     dto: TrainingUpdate,
-    _ = Depends(require_coach_or_admin_for_user),
+    _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
@@ -84,7 +84,7 @@ def update_training(
     return TrainingRead.model_validate(updated)
 
 @router.delete("/{training_id}/user/{target_user_id}", status_code=204)
-def delete_training(training_id: UUID, user=Depends(require_coach_or_admin_for_user)):
+def delete_training(training_id: UUID, user=Depends(require_coach_for_user_or_admin)):
     service = container.get_training_service()
     
     try:
@@ -125,7 +125,7 @@ def list_tasks(
 def create_task(
     training_id: UUID,
     dto: TaskCreate,
-    _ = Depends(require_coach_or_admin_for_user),
+    _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
@@ -176,7 +176,7 @@ def update_task(
     training_id: UUID,
     task_id: UUID,
     dto: TaskUpdate,
-    _ = Depends(require_coach_or_admin_for_user),
+    _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
@@ -205,7 +205,7 @@ def update_task(
 def delete_task(
     training_id: UUID,
     task_id: UUID,
-    _ = Depends(require_coach_or_admin_for_user),
+    _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
