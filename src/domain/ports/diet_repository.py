@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 from typing import List, Optional
-from src.domain.model.diet import Diet as DomainDiet
+from src.domain.model.diet import Diet as DomainDiet, MacroPlan as DomainMacroPlan, MealPlan as DomainMealPlan
 
 class DietRepository(ABC):
     @abstractmethod
@@ -23,3 +23,33 @@ class DietRepository(ABC):
     @abstractmethod
     def delete_diet(self, id: UUID) -> None:
         pass
+
+# Macro Plan methods
+
+    @abstractmethod
+    def add_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
+        pass
+    
+    @abstractmethod
+    def find_macro_plan_by_id(self, id: UUID) -> Optional[DomainMacroPlan]:
+        pass
+
+    @abstractmethod
+    def find_macro_plans_by_user_id(self, user_id: UUID) -> List[DomainMacroPlan]:
+        pass
+
+    @abstractmethod
+    def delete_macro_plan(self, id: UUID) -> None:
+        pass
+
+    @abstractmethod
+    def find_macro_plans_by_diet_id(self, diet_id: UUID) -> List[DomainMacroPlan]:
+        pass
+
+    @abstractmethod
+    def update_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
+        pass
+
+
+
+    
