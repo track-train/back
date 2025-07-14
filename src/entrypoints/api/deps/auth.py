@@ -91,7 +91,7 @@ def require_exercice_owner_or_admin(
 
     return exercise
 
-def require_coach_or_admin_for_user(
+def require_coach_for_user_or_admin(
     target_user_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ) -> UserPayload:
@@ -184,3 +184,31 @@ def require_training_owner_or_admin(
     if str(training.owner_id) != sub and "admin" not in roles:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Access denied: not owner, or admin")
     return training
+
+
+def require_owner_coach_for_user_or_admin(
+    target_user_id: UUID,
+    user: UserPayload = Depends(get_current_user),
+):
+
+    profile_svc = container.get_profile_service()
+    try:
+        target_profile = profile_svc.get_by_id(target_user_id)
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {target_user_id} not found"
+        )
+
+    roles = user.get("roles", [])
+    sub   = user.get("sub")
+
+    if sub == str(target_user_id):
+        return target_profile
+
+    if "admin" in roles:
+        return target_profile
+
+    from src.entrypoints.api.deps.auth import require_coach_for_user_or_admin
+  
+    return require_coach_for_user_or_admin(target_user_id, user)

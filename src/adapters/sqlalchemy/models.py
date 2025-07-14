@@ -8,7 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
 )
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
@@ -47,10 +47,8 @@ class Profile(Base):
     legacy = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    # Roles stored as an array of role names
     roles = Column(ARRAY(String), nullable=False, default=lambda: ["user"])
 
-    # Group relations: users who have accepted invitations
     groups = relationship("Group", secondary=group_users, back_populates="users")
 
     # Other relationships
@@ -197,7 +195,7 @@ class MealPlan(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     diet_id = Column(UUID(as_uuid=True), ForeignKey('diets.id'))
     name = Column(String, nullable=False)
-    meals = Column(String)
+    meals = Column(JSONB, nullable=False, default=list)
 
     diet = relationship("Diet", back_populates="meal_plans")
 
