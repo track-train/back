@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4, UUID
 
 from src.domain.lib.security import BcryptPasswordHasher
 from src.domain.services.profile import ProfileService
@@ -13,12 +14,29 @@ class Container:
         self.hasher = BcryptPasswordHasher()
 
         if self.env in ("dev", "test"):
+            from src.domain.model.profile import Profile as DomainProfile
+            plain_pw = "123456789"
+            hashed_pw = self.hasher.hash(plain_pw)
+            admin = DomainProfile(
+                id=uuid4(),
+                email="admin@mail.fr",
+                password=hashed_pw,
+                name="Admin",
+                sex=None,
+                age=None,
+                contact=None,
+                pricing=None,
+                description=None,
+                legacy=False,
+                roles=["admin"],
+                created_at=None,
+            )
             from src.adapters.inmemory.repositories.profile import InMemoryProfileRepository
             from src.adapters.inmemory.repositories.group import InMemoryGroupRepository
             from src.adapters.inmemory.repositories.training import InMemoryTrainingRepository
             from src.adapters.inmemory.repositories.exercise import InMemoryExerciseRepository
             from src.adapters.inmemory.repositories.diet import InMemoryDietRepository
-            self.profile_repo = InMemoryProfileRepository()
+            self.profile_repo = InMemoryProfileRepository(initial=[admin])
             self.group_repo = InMemoryGroupRepository()
             self.training_repo = InMemoryTrainingRepository()
             self.exercise_repo = InMemoryExerciseRepository()
