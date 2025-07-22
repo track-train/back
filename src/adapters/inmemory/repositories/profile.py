@@ -44,3 +44,6 @@ class InMemoryProfileRepository(ProfileRepository):
 
     def find_all_coachs(self) -> List[DomainProfile]:
         return [p for p in self._data.values() if "coach" in (p.roles or [])]
+
+    def find_all(self) -> List[DomainProfile]:
+        return list(self._data.values())
