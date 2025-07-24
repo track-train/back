@@ -13,7 +13,6 @@ def set_test_env():
     os.environ["ENV"] = "test"  # Configure l'environnement à "test"
     yield
     # Optionnel : tu peux aussi réinitialiser la variable d'environnement après les tests si nécessaire
-    del os.environ["ENV"]
 
 
 # Fixture pour initialiser un conteneur unique pour tous les tests
