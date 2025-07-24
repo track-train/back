@@ -100,7 +100,7 @@ def list_owner_groups(owner_id: UUID):
 def leave_group(group_id: UUID, user=Depends(get_current_user)):
     service = container.get_group_service()
     try:
-        service.remove_member(group_id, user["sub"])
+        service.remove_member(group_id, UUID(user["sub"]))
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     
