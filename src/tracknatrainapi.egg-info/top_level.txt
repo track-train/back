@@ -1,6 +1,0 @@
-__init__
-adapters
-container
-domain
-entrypoints
-main
