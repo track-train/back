@@ -12,7 +12,7 @@ from src.container import container
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
-@router.post("/", response_model=ExerciseRead, status_code=201, dependencies=[Depends(require_roles("admin", "coach"))])
+@router.post("", response_model=ExerciseRead, status_code=201, dependencies=[Depends(require_roles("admin", "coach"))])
 def create_exercise(
     dto: ExerciseCreate,
     user=Depends(get_current_user)
@@ -30,7 +30,7 @@ def create_exercise(
     
     return ExerciseRead.model_validate(exercise)
 
-@router.get("/", response_model=List[ExerciseRead], dependencies=[Depends(get_current_user)])
+@router.get("", response_model=List[ExerciseRead], dependencies=[Depends(get_current_user)])
 def get_exercises(
     user=Depends(get_current_user)
 ):
