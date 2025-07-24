@@ -37,7 +37,7 @@ class Container:
             from src.adapters.inmemory.repositories.exercise import InMemoryExerciseRepository
             from src.adapters.inmemory.repositories.diet import InMemoryDietRepository
             self.profile_repo = InMemoryProfileRepository(initial=[admin])
-            self.group_repo = InMemoryGroupRepository()
+            self.group_repo = InMemoryGroupRepository(self.profile_repo)
             self.training_repo = InMemoryTrainingRepository()
             self.exercise_repo = InMemoryExerciseRepository()
             self.diet_repo = InMemoryDietRepository()
