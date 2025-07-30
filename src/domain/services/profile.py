@@ -5,7 +5,8 @@ from typing import List, Optional
 from src.domain.model.profile import Profile as DomainProfile
 from src.domain.ports.profile_repository import ProfileRepository
 from src.domain.ports.password_hasher import PasswordHasher
-from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError, InvalidConfirmPasswordError
+from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError, InvalidConfirmPasswordError, InvalidFormatEmailError
+import re
 
 class ProfileService:
     def __init__(self, repo: ProfileRepository, hasher: PasswordHasher):
@@ -27,6 +28,11 @@ class ProfileService:
                legacy: Optional[str] = None,
                roles: Optional[List[str]] = None
                ) -> DomainProfile:
+        
+        email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+        if not re.match(email_regex, email):
+            raise InvalidFormatEmailError(f"Email {email} has invalid format")
+
         if self._repo.find_by_email(email):
             raise DuplicateProfileError(f"Profile with email {email} already exists")
         
@@ -62,6 +68,11 @@ class ProfileService:
 
     def login(self, email: str, password: str) -> DomainProfile:
         profile = self._repo.find_by_email(email)
+
+        email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+        if not re.match(email_regex, email):
+            raise InvalidFormatEmailError(f"Email {email} has invalid format")
+
         if not profile:
             raise AuthenticationError(f"Invalid password or email")
         

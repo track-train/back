@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 
 class ProfileCreate(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     confirm_password: str
     name: Optional[str] = None
@@ -55,7 +55,7 @@ class ProfileWithToken(BaseModel):
     token: TokenResponse
 
 class ProfileLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class ProfilUpdate(BaseModel):
