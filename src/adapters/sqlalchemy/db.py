@@ -9,7 +9,10 @@ load_dotenv()
 db_url = os.getenv("DATABASE_URL") or "postgresql://user:user@localhost:5432/postgres"
 
 engine = create_engine(
-    db_url
+    db_url,
+    pool_size=20,
+    max_overflow=20,
+    pool_timeout=30,
 )
 
 Base.metadata.create_all(bind=engine)
