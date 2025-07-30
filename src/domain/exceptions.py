@@ -6,6 +6,10 @@ class InvalidConfirmPasswordError(DomainError):
     """Confirm password does not match."""
     pass
 
+class InvalidFormatEmailError(DomainError):
+    """Invalid email format."""
+    pass
+
 class DuplicateProfileError(DomainError):
     """Email already used."""
     pass
