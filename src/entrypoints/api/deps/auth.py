@@ -36,7 +36,7 @@ def require_owner_or_admin(
     if str(user_id) != str(profile_id) and "admin" not in roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden access"
+            detail="Access forbidden"
         )
     return user
 

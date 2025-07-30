@@ -7,8 +7,11 @@ from src.domain.ports.profile_repository import ProfileRepository
 
 
 class InMemoryProfileRepository(ProfileRepository):
-    def __init__(self):
+    def __init__(self, initial: list[DomainProfile] | None = None):
         self._data: dict[UUID, DomainProfile] = {}
+        if initial:
+            for profile in initial:
+                self._data[profile.id] = profile
 
     def find_by_email(self, email: str) -> Optional[DomainProfile]:
         for profile in self._data.values():
@@ -41,3 +44,6 @@ class InMemoryProfileRepository(ProfileRepository):
 
     def find_all_coachs(self) -> List[DomainProfile]:
         return [p for p in self._data.values() if "coach" in (p.roles or [])]
+
+    def find_all(self) -> List[DomainProfile]:
+        return list(self._data.values())

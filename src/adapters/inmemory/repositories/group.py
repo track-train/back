@@ -9,10 +9,10 @@ from src.domain.exceptions import NotFoundError
 from src.adapters.inmemory.repositories.profile import InMemoryProfileRepository
 
 class InMemoryGroupRepository(GroupRepository):
-    def __init__(self):
+    def __init__(self, profile_repo: InMemoryProfileRepository):
         self._groups: dict[UUID, DomainGroup] = {}
         self._members: dict[UUID, List[UUID]] = {}
-        self._profile_repo = InMemoryProfileRepository()
+        self._profile_repo = profile_repo        
 
     def find_by_id(self, id: UUID) -> Optional[DomainGroup]:
         return self._groups.get(id)

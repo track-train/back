@@ -34,13 +34,13 @@ class ProfileRead(BaseModel):
 
 class CoachProfileRead(BaseModel):
     id: UUID
-    name: str
-    sex: str
-    age: int
-    contact: str
-    pricing: float
-    description: str
-    legacy: str
+    name: Optional[str] = None
+    sex: Optional[str] = None
+    age: Optional[int] = None
+    contact: Optional[str] = None
+    pricing: Optional[float] = None
+    description: Optional[str] = None
+    legacy: Optional[str] = None
 
     model_config = {
         "from_attributes": True

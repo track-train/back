@@ -54,7 +54,9 @@ class GroupService:
         if not group:
             raise NotFoundError(f"Group with id {group_id} not found")
         
-        if user_id not in self._repo.list_members(group_id):
+        profiles = self._repo.list_members(group_id) 
+        member_ids = [p.id for p in profiles] 
+        if user_id not in member_ids:
             raise NotFoundError(f"User with id {user_id} is not a member of group {group_id}")
         
         self._repo.remove_member(group_id, user_id)

@@ -13,3 +13,5 @@
 # PYTHON
 __pycache__/
 
+# Info file
+tracknatrainapi.egg-info/

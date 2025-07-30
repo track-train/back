@@ -158,14 +158,16 @@ class DietService:
     ) -> DomainMealPlan:
         mp = self.get_meal_plan_by_id(plan_id)
 
-        domain_meals = [DomainMealItem(**m.model_dump()) for m in meals]
-        if not domain_meals:
+        updated_name = name if name is not None else mp.name
+        updated_meals = [DomainMealItem(**m.model_dump()) for m in meals] if meals is not None else mp.meals
+
+        if not updated_meals:
             raise ValueError("Meal Plan must have at least one meal")
         
         if name is not None:
-            mp.name = name
+            mp.name = updated_name
         if meals is not None:
-            mp.meals = domain_meals
+            mp.meals = updated_meals
         return self._repo.update_meal_plan(mp)
 
     def delete_meal_plan(self, plan_id: UUID) -> None:
