@@ -1,4 +1,5 @@
 import pytest
+import uuid
 
 @pytest.mark.asyncio
 class TestProfilesScenario:
@@ -57,11 +58,9 @@ class TestProfilesScenario:
         )
         assert r.status_code == 200
         roles = r.json()["roles"]
-        # On ne vérifie plus "user", seulement que "coach" a bien été ajouté
         assert "coach" in roles
 
     async def test_05_coach_cannot_update_roles(self, client):
-        # un coach ne peut pas toucher aux rôles
         update_data = {"roles": ["admin"]}
         r = await client.patch(
             f"/profiles/{self.__class__.user_uuid}/roles",
@@ -71,7 +70,6 @@ class TestProfilesScenario:
         assert r.status_code == 403
 
     async def test_06_user_cannot_update_roles(self, client):
-        # un user non-admin ne peut pas toucher aux rôles
         update_data = {"roles": ["admin"]}
         r = await client.patch(
             f"/profiles/{self.__class__.user_uuid}/roles",
@@ -193,15 +191,46 @@ class TestProfilesScenario:
             headers={"Authorization": f"Bearer {self.__class__.coach_token}"}
         )
         assert r.status_code == 403
+    
+    async def test_20_user_cannot_get_user_profile(self, client):
+        r = await client.get(
+            f"/profiles/{self.__class__.coach_uuid}",
+            headers={"Authorization": f"Bearer {self.__class__.user_token}"}
+        )
+        assert r.status_code == 403
 
-    async def test_20_user_can_delete_own_profile(self, client):
+    async def test_21_coach_can_get_user_profile(self, client):
+        r = await client.get(
+            f"/profiles/{self.__class__.user_uuid}",
+            headers={"Authorization": f"Bearer {self.__class__.coach_token}"}
+        )
+        assert r.status_code == 200
+        assert r.json()["id"] == self.__class__.user_uuid
+
+    async def test_22_admin_can_get_user_profile(self, client):
+        r = await client.get(
+            f"/profiles/{self.__class__.coach_uuid}",
+            headers={"Authorization": f"Bearer {self.__class__.admin_token}"}
+        )
+        assert r.status_code == 200
+        assert r.json()["id"] == self.__class__.coach_uuid
+
+    async def test_23_admin_get_user_profile_not_found(self, client):
+        fake_id = str(uuid.uuid4())
+        r = await client.get(
+            f"/profiles/{fake_id}",
+            headers={"Authorization": f"Bearer {self.__class__.admin_token}"}
+        )
+        assert r.status_code == 404
+
+    async def test_24_user_can_delete_own_profile(self, client):
         r = await client.delete(
             f"/profiles/{self.__class__.user_uuid}",
             headers={"Authorization": f"Bearer {self.__class__.user_token}"}
         )
         assert r.status_code == 204
 
-    async def test_21_admin_can_delete_coach(self, client):
+    async def test_25_admin_can_delete_coach(self, client):
         r = await client.delete(
             f"/profiles/{self.__class__.coach_uuid}",
             headers={"Authorization": f"Bearer {self.__class__.admin_token}"}
