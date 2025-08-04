@@ -72,19 +72,6 @@ async def get_all_coach_profiles():
     return [CoachProfileRead.model_validate(profile) for profile in profiles]
 
 
-
-@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_owner_or_admin)])
-async def delete_profile(
-    profile_id: UUID,
-): 
-    service = container.get_profile_service()
-    try: 
-        service.delete(profile_id)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    
-    return None
-
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(
     dto: ProfileLogin,
@@ -143,6 +130,28 @@ async def patch_profile(
         raise HTTPException(status_code=404, detail=str(e))
     
     return ProfileRead.model_validate(updated)
+
+@router.get("/{profile_id}", response_model=ProfileRead, status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles("admin", "coach"))])
+async def get_user_profile(profile_id: UUID):
+    service = container.get_profile_service()
+    try:
+        profile = service.get_by_id(profile_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return ProfileRead.model_validate(profile)
+
+@router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_owner_or_admin)])
+async def delete_profile(
+    profile_id: UUID,
+): 
+    service = container.get_profile_service()
+    try: 
+        service.delete(profile_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    
+    return None
+
 
 
 @router.patch(
