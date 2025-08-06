@@ -74,7 +74,14 @@ jobs:
       - name: Extract changelog from PR description
         id: extract_changelog
         run: |
-          PR_BODY='${{ github.event.pull_request.body }}'
+          # Créer un fichier temporaire pour traiter le PR body
+          echo '${{ github.event.pull_request.body }}' > /tmp/pr_body.txt
+          
+          # Nettoyer les caractères Windows
+          sed -i 's/\r$//' /tmp/pr_body.txt
+          
+          # Lire le contenu nettoyé
+          PR_BODY=$(cat /tmp/pr_body.txt)
           
           if echo "$PR_BODY" | grep -q "#changelog"; then
             CHANGELOG=$(echo "$PR_BODY" | sed -n '/#changelog/,$p' | sed '1d' | sed '/^[[:space:]]*$/d')
@@ -86,11 +93,17 @@ jobs:
             CHANGELOG="- Update to version ${{ env.FULL_VERSION }}"
           fi
           
+          # Nettoyer le changelog final
+          CHANGELOG=$(echo "$CHANGELOG" | tr -d '\r' | sed 's/[[:space:]]*$//')
+          
           {
             echo 'CHANGELOG<<EOF'
             echo "$CHANGELOG"
             echo 'EOF'
           } >> $GITHUB_ENV
+          
+          # Nettoyer le fichier temporaire
+          rm -f /tmp/pr_body.txt
 
       - name: Update version in pyproject.toml
         id: version
