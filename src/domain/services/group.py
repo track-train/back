@@ -81,3 +81,29 @@ class GroupService:
             raise NotFoundError("No groups found")
         
         return groups
+
+    def get_my_coaches(self, user_id: UUID) -> List[DomainProfile]:
+        groups = self._repo.find_groups_by_member_id(user_id)
+        if not groups:
+            raise NotFoundError(f"No groups found for user {user_id}")
+        
+        coach_ids = set()
+        for group in groups:
+            coach_ids.add(group.owner_id)
+        
+        from src.container import container
+        profile_service = container.get_profile_service()
+        
+        coaches = []
+        for coach_id in coach_ids:
+            try:
+                coach = profile_service._repo.find_by_id(coach_id)
+                if coach and "coach" in coach.roles:
+                    coaches.append(coach)
+            except NotFoundError:
+                continue
+        
+        if not coaches:
+            raise NotFoundError("No coaches found in your groups")
+                
+        return coaches
