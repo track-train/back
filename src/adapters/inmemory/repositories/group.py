@@ -65,3 +65,11 @@ class InMemoryGroupRepository(GroupRepository):
 
     def find_all_groups(self) -> Optional[List[DomainGroup]]:
         return list(self._groups.values())
+
+    def find_groups_by_member_id(self, user_id: UUID) -> Optional[List[DomainGroup]]:
+        """Find all groups where the user is a member"""
+        groups = []
+        for group_id, member_ids in self._members.items():
+            if user_id in member_ids:
+                groups.append(self._groups[group_id])
+        return groups if groups else []
