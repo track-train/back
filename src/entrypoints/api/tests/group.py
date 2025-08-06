@@ -283,6 +283,147 @@ class TestGroupsScenario:
         )
         assert r.status_code == 204
 
+    # 29 – Setup pour les tests de coaches: coach crée un nouveau groupe
+    async def test_29_setup_coach_create_new_group(self, client, test_state):
+        payload = {"name": "NewCoachGroup", "description": "Nouveau groupe pour tests coaches"}
+        r = await client.post(
+            "/groups",
+            json=payload,
+            headers={"Authorization": f"Bearer {test_state['coach_token']}"}
+        )
+        assert r.status_code == 201
+        grp = r.json()
+        test_state["new_coach_group_uuid"] = grp["id"]
+
+    # 30 – Coach ajoute l'utilisateur au nouveau groupe
+    async def test_30_setup_coach_add_user_to_new_group(self, client, test_state):
+        r = await client.post(
+            f"/groups/{test_state['new_coach_group_uuid']}/members/{test_state['user_uuid']}",
+            headers={"Authorization": f"Bearer {test_state['coach_token']}"}
+        )
+        assert r.status_code == 204
+
+    # 31 – User récupère ses coaches (il est membre du groupe du coach) → 200
+    async def test_31_user_get_my_coaches_success(self, client, test_state):
+        r = await client.get(
+            "/groups/coachs/mine",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 200
+        coaches = r.json()
+        assert isinstance(coaches, list)
+        assert len(coaches) == 1
+        assert coaches[0]["id"] == test_state["coach_uuid"]
+        assert coaches[0]["name"] == "Coach"
+
+    # 32 – Admin récupère ses coaches (il n'est membre d'aucun groupe) → 404
+    async def test_32_admin_get_my_coaches_not_found(self, client, test_state):
+        r = await client.get(
+            "/groups/coachs/mine",
+            headers={"Authorization": f"Bearer {test_state['admin_token']}"}
+        )
+        assert r.status_code == 404
+
+    # 33 – User quitte le groupe puis essaie de récupérer ses coaches → 404
+    async def test_33_user_leave_group_then_get_coaches_not_found(self, client, test_state):
+        r = await client.delete(
+            f"/groups/{test_state['new_coach_group_uuid']}/leave",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 204
+
+        r = await client.get(
+            "/groups/coachs/mine",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 404
+
+    # 34 – Création d'un second coach pour tester plusieurs coaches
+    async def test_34_create_second_coach(self, client, test_state):
+        payload = {
+            "email": "coach2@example.com",
+            "password": "Coach2Pass123!",
+            "confirm_password": "Coach2Pass123!",
+            "name": "Coach2",
+            "sex": "F",
+            "age": 30
+        }
+        r = await client.post("/profiles", json=payload)
+        assert r.status_code == 201
+        body = r.json()
+        test_state["coach2_uuid"] = body["profile"]["id"]
+
+        update_data = {"roles": ["user", "coach"]}
+        r = await client.patch(
+            f"/profiles/{test_state['coach2_uuid']}/roles",
+            json=update_data,
+            headers={"Authorization": f"Bearer {test_state['admin_token']}"}
+        )
+        assert r.status_code == 200
+
+        r = await client.post(
+            "/profiles/login",
+            json={"email": "coach2@example.com", "password": "Coach2Pass123!"}
+        )
+        assert r.status_code == 200
+        test_state["coach2_token"] = r.json()["access_token"]
+
+    # 35 – Second coach crée un groupe
+    async def test_35_coach2_create_group(self, client, test_state):
+        payload = {"name": "Coach2Group", "description": "Groupe du second coach"}
+        r = await client.post(
+            "/groups",
+            json=payload,
+            headers={"Authorization": f"Bearer {test_state['coach2_token']}"}
+        )
+        assert r.status_code == 201
+        grp = r.json()
+        test_state["coach2_group_uuid"] = grp["id"]
+
+    # 36 – Les deux coaches ajoutent l'utilisateur à leurs groupes
+    async def test_36_both_coaches_add_user(self, client, test_state):
+        # Coach 1 ajoute user
+        r = await client.post(
+            f"/groups/{test_state['new_coach_group_uuid']}/members/{test_state['user_uuid']}",
+            headers={"Authorization": f"Bearer {test_state['coach_token']}"}
+        )
+        assert r.status_code == 204
+
+        r = await client.post(
+            f"/groups/{test_state['coach2_group_uuid']}/members/{test_state['user_uuid']}",
+            headers={"Authorization": f"Bearer {test_state['coach2_token']}"}
+        )
+        assert r.status_code == 204
+
+    # 37 – User récupère ses coaches (2 coaches cette fois) → 200
+    async def test_37_user_get_multiple_coaches(self, client, test_state):
+        r = await client.get(
+            "/groups/coachs/mine",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 200
+        coaches = r.json()
+        assert isinstance(coaches, list)
+        assert len(coaches) == 2
+        
+        coach_ids = [coach["id"] for coach in coaches]
+        assert test_state["coach_uuid"] in coach_ids
+        assert test_state["coach2_uuid"] in coach_ids
+    
+# 38 – User quitte les groupes de ses coaches → 204
+    async def test_38_user_leave_coach_groups(self, client, test_state):
+        r = await client.delete(
+            f"/groups/{test_state['new_coach_group_uuid']}/leave",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 204
+
+        r = await client.delete(
+            f"/groups/{test_state['coach2_group_uuid']}/leave",
+            headers={"Authorization": f"Bearer {test_state['user_token']}"}
+        )
+        assert r.status_code == 204
+
 
 # créer un user/ créer un coach (user)
 # admin update role coach add coach
