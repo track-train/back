@@ -40,7 +40,3 @@ class GroupRepository(ABC):
     @abstractmethod
     def find_all_groups(self) -> Optional[list[Group]]:
         pass
-
-    @abstractmethod
-    def find_groups_by_member_id(self, user_id: UUID) -> Optional[list[Group]]:
-        pass

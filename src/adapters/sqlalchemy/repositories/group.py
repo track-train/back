@@ -85,7 +85,3 @@ class SqlAlchemyGroupRepository(GroupRepository):
     def find_all_groups(self) -> Optional[List[DomainGroup]]:
         orms = self._session.query(ORMGroup).all()
         return [group_from_orm(orm) for orm in orms] if orms else []
-
-    def find_groups_by_member_id(self, user_id: UUID) -> Optional[List[DomainGroup]]:
-        orms = self._session.query(ORMGroup).join(group_users).filter(group_users.c.profile_id == user_id).all()
-        return [group_from_orm(orm) for orm in orms] if orms else []

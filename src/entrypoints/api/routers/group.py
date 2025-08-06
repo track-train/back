@@ -8,7 +8,6 @@ from src.domain.exceptions import NotFoundError
 from src.entrypoints.api.deps.auth import require_group_owner_or_admin, get_current_user
 from src.entrypoints.api.deps.roles import require_roles
 from src.entrypoints.api.schemas.group import GroupCreate, GroupUpdate, GroupRead, GroupMember
-from src.entrypoints.api.schemas.profile import CoachProfileRead
 from src.container import container
 
 
@@ -104,15 +103,4 @@ def leave_group(group_id: UUID, user=Depends(get_current_user)):
         service.remove_member(group_id, UUID(user["sub"]))
     except NotFoundError as e:
         raise HTTPException(404, str(e))
-
-@router.get("/coachs/mine", response_model=List[CoachProfileRead])
-def get_my_coaches(user=Depends(get_current_user)):
-    """Get all coaches from groups where the current user is a member"""
-    service = container.get_group_service()
-    try:
-        coaches = service.get_my_coaches(UUID(user["sub"]))
-        return [CoachProfileRead.model_validate(coach) for coach in coaches]
-    except NotFoundError as e:
-        raise HTTPException(404, str(e))
     
-
