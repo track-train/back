@@ -49,47 +49,117 @@ class Container:
     def get_profile_service(self):
         if self.env in ("dev", "test"):
             repo = self.profile_repo
+            return ProfileService(repo, self.hasher)
         else:
             from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
-            # For production, we'll create a service that manages its session internally
-            repo = SqlAlchemyProfileRepository(None)
-            repo._session_factory = self.SessionFactory
-        return ProfileService(repo, self.hasher)
+            
+            # Create a dynamic wrapper that manages sessions per method call
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyProfileRepository, self.SessionFactory)
+            return ProfileService(repo, self.hasher)
 
     def get_group_service(self):
         if self.env in ("dev", "test"):
             repo = self.group_repo
+            return GroupService(repo)
         else:
             from src.adapters.sqlalchemy.repositories.group import SqlAlchemyGroupRepository
-            repo = SqlAlchemyGroupRepository(None)
-            repo._session_factory = self.SessionFactory
-        return GroupService(repo)
+            
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyGroupRepository, self.SessionFactory)
+            return GroupService(repo)
 
     def get_training_service(self):
         if self.env in ("dev", "test"):
             repo = self.training_repo
+            return TrainingService(repo)
         else:
             from src.adapters.sqlalchemy.repositories.training import SqlAlchemyTrainingRepository
-            repo = SqlAlchemyTrainingRepository(None)
-            repo._session_factory = self.SessionFactory
-        return TrainingService(repo)
+            
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyTrainingRepository, self.SessionFactory)
+            return TrainingService(repo)
 
     def get_exercise_service(self):
         if self.env in ("dev", "test"):
             repo = self.exercise_repo
+            return ExerciseService(repo)
         else:
             from src.adapters.sqlalchemy.repositories.exercise import SqlAlchemyExerciseRepository
-            repo = SqlAlchemyExerciseRepository(None)
-            repo._session_factory = self.SessionFactory
-        return ExerciseService(repo)
+            
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyExerciseRepository, self.SessionFactory)
+            return ExerciseService(repo)
 
     def get_diet_service(self):
         if self.env in ("dev", "test"):
             repo = self.diet_repo
+            return DietService(repo)
         else:
             from src.adapters.sqlalchemy.repositories.diet import SqlAlchemyDietRepository
-            repo = SqlAlchemyDietRepository(None)
-            repo._session_factory = self.SessionFactory
-        return DietService(repo)
+            
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyDietRepository, self.SessionFactory)
+            return DietService(repo)
 
 container = Container()
