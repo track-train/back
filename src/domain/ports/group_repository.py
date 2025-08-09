@@ -6,41 +6,41 @@ from uuid import UUID
 
 class GroupRepository(ABC):
     @abstractmethod
-    def find_by_id(self, id: UUID) -> Optional[Group]:
+    async def find_by_id(self, id: UUID) -> Optional[Group]:
         pass
 
     @abstractmethod
-    def add(self, group: Group) -> Optional[Group]:
+    async def add(self, group: Group) -> Optional[Group]:
         pass
 
     @abstractmethod
-    def delete(self, id: UUID) -> None:
+    async def delete(self, id: UUID) -> None:
         pass
 
     @abstractmethod
-    def update(self, group: Group) -> Optional[Group]:
+    async def update(self, group: Group) -> Optional[Group]:
         pass
 
     @abstractmethod
-    def add_member(self, group_id: UUID, user_id: UUID) -> None:
+    async def add_member(self, group_id: UUID, user_id: UUID) -> None:
         pass
 
     @abstractmethod
-    def remove_member(self, group_id: UUID, user_id: UUID) -> None:
+    async def remove_member(self, group_id: UUID, user_id: UUID) -> None:
         pass
 
     @abstractmethod
-    def find_by_owner_id(self, owner_id: UUID) -> Optional[list[Group]]:
+    async def find_by_owner_id(self, owner_id: UUID) -> Optional[list[Group]]:
         pass
 
     @abstractmethod
-    def list_members(self, group_id: UUID) -> Optional[list[UUID]]:
+    async def list_members(self, group_id: UUID) -> Optional[list[UUID]]:
         pass
 
     @abstractmethod
-    def find_all_groups(self) -> Optional[list[Group]]:
+    async def find_all_groups(self) -> Optional[list[Group]]:
         pass
 
     @abstractmethod
-    def find_groups_by_member_id(self, user_id: UUID) -> Optional[list[Group]]:
+    async def find_groups_by_member_id(self, user_id: UUID) -> Optional[list[Group]]:
         pass
