@@ -1,5 +1,6 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from src.domain.exceptions import NotFoundError
 from uuid import UUID
 
@@ -19,42 +20,50 @@ def exercise_from_orm(orm_exercise) -> DomainExercise:
     )
 
 class SqlAlchemyExerciseRepository(ExerciseRepository):
-    def __init__(self, session: Session):
-        self._session = session
+    def __init__(self, session_factory):
+        self._session_factory = session_factory
 
      # CRUD operations for Exercise
-    def add(self, exercise: DomainExercise) -> Optional[DomainExercise]:
+    async def add(self, exercise: DomainExercise) -> Optional[DomainExercise]:
         data = exercise.to_orm_dict()
         orm = ORMExercise(**data)
-        self._session.add(orm)
-        self._session.commit()
-        self._session.refresh(orm)
-        return exercise_from_orm(orm) if orm else None
+        async with self._session_factory() as session:
+            session.add(orm)
+            await session.commit()
+            await session.refresh(orm)
+            return exercise_from_orm(orm) if orm else None
     
-    def delete(self, id: UUID) -> None:
-        orm = self._session.get(ORMExercise, id)
-        if not orm:
-            return
-        self._session.delete(orm)
-        self._session.commit()
+    async def delete(self, id: UUID) -> None:
+        async with self._session_factory() as session:
+            orm = await session.get(ORMExercise, id)
+            if not orm:
+                return
+            await session.delete(orm)
+            await session.commit()
     
-    def update(self, exercise: DomainExercise) -> Optional[DomainExercise]:
-        orm = self._session.get(ORMExercise, exercise.id)
-        if not orm:
-            raise NotFoundError(f"Exercise {exercise.id} not found")
-        for key, value in exercise.to_orm_dict().items():
-            setattr(orm, key, value)
-        self._session.commit()
-        return exercise_from_orm(orm) if orm else None
+    async def update(self, exercise: DomainExercise) -> Optional[DomainExercise]:
+        async with self._session_factory() as session:
+            orm = await session.get(ORMExercise, exercise.id)
+            if not orm:
+                raise NotFoundError(f"Exercise {exercise.id} not found")
+            for key, value in exercise.to_orm_dict().items():
+                setattr(orm, key, value)
+            await session.commit()
+            return exercise_from_orm(orm) if orm else None
     
-    def find_all_owner(self, owner_id: UUID) -> Optional[List[DomainExercise]]:
-        orms = self._session.query(ORMExercise).filter(ORMExercise.owner_id == owner_id).all()
-        return [exercise_from_orm(orm) for orm in orms] if orms else []
+    async def find_all_owner(self, owner_id: UUID) -> Optional[List[DomainExercise]]:
+        async with self._session_factory() as session:
+            result = await session.execute(select(ORMExercise).filter(ORMExercise.owner_id == owner_id))
+            orms = result.scalars().all()
+            return [exercise_from_orm(orm) for orm in orms] if orms else []
     
-    def find_all(self) -> Optional[List[DomainExercise]]:
-        orms = self._session.query(ORMExercise).all()
-        return [exercise_from_orm(orm) for orm in orms] if orms else []
+    async def find_all(self) -> Optional[List[DomainExercise]]:
+        async with self._session_factory() as session:
+            result = await session.execute(select(ORMExercise))
+            orms = result.scalars().all()
+            return [exercise_from_orm(orm) for orm in orms] if orms else []
     
-    def find_by_id(self, id: UUID) -> Optional[DomainExercise]:
-        orm = self._session.get(ORMExercise, id)
-        return exercise_from_orm(orm) if orm else None
+    async def find_by_id(self, id: UUID) -> Optional[DomainExercise]:
+        async with self._session_factory() as session:
+            orm = await session.get(ORMExercise, id)
+            return exercise_from_orm(orm) if orm else None

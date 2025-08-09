@@ -40,14 +40,14 @@ def require_owner_or_admin(
         )
     return user
 
-def require_group_owner_or_admin(
+async def require_group_owner_or_admin(
     group_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ) -> UserPayload:
 
     svc = container.get_group_service()
     try:
-        group = svc._repo.find_by_id(group_id)
+        group = await svc._repo.find_by_id(group_id) 
     except Exception:
         group = None
 
@@ -64,16 +64,16 @@ def require_group_owner_or_admin(
             detail="Access denied: not owner or admin"
         )
 
-    return group
+    return user
 
-def require_exercice_owner_or_admin(
+async def require_exercice_owner_or_admin(
     exercise_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ) -> UserPayload:
 
     svc = container.get_exercise_service()
     try:
-        exercise = svc._repo.find_by_id(exercise_id)
+        exercise = await svc._repo.find_by_id(exercise_id)  
     except Exception:
         exercise = None
 
@@ -89,16 +89,16 @@ def require_exercice_owner_or_admin(
             detail="Access denied: not owner or admin"
         )
 
-    return exercise
+    return user
 
-def require_coach_for_user_or_admin(
+async def require_coach_for_user_or_admin(
     target_user_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ) -> UserPayload:
 
     profile_svc = container.get_profile_service()
     try:
-        target_profile = profile_svc.get_by_id(target_user_id)
+        target_profile = await profile_svc.get_by_id(target_user_id)    
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -109,7 +109,7 @@ def require_coach_for_user_or_admin(
     user_sub = user.get("sub")
 
     if "admin" in roles:
-        return target_profile
+        return user
 
     if "coach" not in roles:
         raise HTTPException(
@@ -119,17 +119,17 @@ def require_coach_for_user_or_admin(
 
     group_svc = container.get_group_service()
     try:
-        coach_groups = group_svc.list_owner_groups(UUID(user_sub))
+        coach_groups = await group_svc.list_owner_groups(UUID(user_sub))  
     except NotFoundError:
         coach_groups = []
 
     for grp in coach_groups:
         try:
-            members = group_svc.list_members(grp.id)
+            members = await group_svc.list_members(grp.id)  
         except NotFoundError:
             continue
         if any(m.id == target_user_id for m in members):
-            return target_profile
+            return user
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -137,7 +137,7 @@ def require_coach_for_user_or_admin(
     )
 
 
-def require_training_owner_or_coach_or_admin(
+async def require_training_owner_or_coach_or_admin(
     training_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ) -> UserPayload:
@@ -148,33 +148,44 @@ def require_training_owner_or_coach_or_admin(
     if "admin" in roles:
         return user
 
-    if "coach" in roles:
-        return user
-
     svc = container.get_training_service()
     try:
-        training = svc.get_training(training_id)
+        training = await svc.get_training(training_id)  
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Training {training_id} not found"
         )
 
-    if str(training.owner_id) != sub:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: not owner, coach, or admin"
-        )
+    if str(training.owner_id) == sub:
+        return user
 
-    return user
+    if "coach" in roles:
+        group_svc = container.get_group_service()
+        try:
+            coach_groups = await group_svc.list_owner_groups(UUID(sub)) 
+            for grp in coach_groups:
+                try:
+                    members = await group_svc.list_members(grp.id)  
+                    if any(m.id == training.owner_id for m in members):
+                        return user
+                except NotFoundError:
+                    continue
+        except NotFoundError:
+            pass
 
-def require_training_owner_or_admin(
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access denied: not owner, coach, or admin"
+    )
+
+async def require_training_owner_or_admin(
     training_id: UUID,
     user: dict = Depends(get_current_user),
 ):
     svc = container.get_training_service()
     try:
-        training = svc.get_training(training_id)
+        training = await svc.get_training(training_id)  
     except NotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Training {training_id} not found")
 
@@ -183,17 +194,17 @@ def require_training_owner_or_admin(
 
     if str(training.owner_id) != sub and "admin" not in roles:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Access denied: not owner, or admin")
-    return training
+    return user  
 
 
-def require_owner_coach_for_user_or_admin(
+async def require_owner_coach_for_user_or_admin(
     target_user_id: UUID,
     user: UserPayload = Depends(get_current_user),
 ):
 
     profile_svc = container.get_profile_service()
     try:
-        target_profile = profile_svc.get_by_id(target_user_id)
+        target_profile = await profile_svc.get_by_id(target_user_id)  
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -204,11 +215,9 @@ def require_owner_coach_for_user_or_admin(
     sub   = user.get("sub")
 
     if sub == str(target_user_id):
-        return target_profile
+        return user  
 
     if "admin" in roles:
-        return target_profile
+        return user  
 
-    from src.entrypoints.api.deps.auth import require_coach_for_user_or_admin
-  
-    return require_coach_for_user_or_admin(target_user_id, user)
+    return await require_coach_for_user_or_admin(target_user_id, user)
