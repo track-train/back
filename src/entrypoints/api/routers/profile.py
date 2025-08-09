@@ -5,13 +5,12 @@ from sqlalchemy.sql.functions import user
 from starlette.status import HTTP_404_NOT_FOUND
 
 
-from src.entrypoints.api.deps.database import get_profile_service
+from src.container import container
 from src.domain.lib.jwt_manager import create_access_token
 from src.entrypoints.api.schemas.profile import EmailUpdate, PasswordUpdate, ProfileCreate, ProfileRead, ProfileWithToken, RolesUpdate, TokenResponse, ProfileLogin, ProfilUpdate, CoachProfileRead
 from src.domain.exceptions import DuplicateProfileError, InvalidConfirmPasswordError, InvalidFormatEmailError, NotFoundError, AuthenticationError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_owner_or_admin
 from src.entrypoints.api.deps.roles import require_roles
-from src.domain.services.profile import ProfileService
 
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
@@ -19,8 +18,8 @@ router = APIRouter(prefix="/profiles", tags=["profiles"])
 @router.post("", response_model=ProfileWithToken, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     dto: ProfileCreate,
-    service: ProfileService = Depends(get_profile_service)
 ):
+    service = container.get_profile_service()
     try:
         profile = await service.create(
             email=dto.email,
@@ -55,7 +54,7 @@ async def create_profile(
 async def get_all_user_profiles():
     service = container.get_profile_service()
     try:
-        profiles = service.get_all_users()
+        profiles = await service.get_all_users()
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
@@ -65,7 +64,7 @@ async def get_all_user_profiles():
 async def get_all_coach_profiles():
     service = container.get_profile_service()
     try:
-        profiles = service.get_all_coachs()
+        profiles = await service.get_all_coachs()
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -78,7 +77,7 @@ async def login(
 ):
     service = container.get_profile_service()
     try:
-        profile = service.login(email=dto.email, password=dto.password)
+        profile = await service.login(email=dto.email, password=dto.password)
     except AuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e))
     except InvalidFormatEmailError as e:
@@ -105,7 +104,7 @@ async def get_me(
     service = container.get_profile_service()
     
     try:
-        profile = service.get_by_id(UUID(user["sub"]))
+        profile = await service.get_by_id(UUID(user["sub"]))
     except NotFoundError:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
@@ -125,7 +124,7 @@ async def patch_profile(
     update_data = dto.model_dump(exclude_none=True, by_alias=True)
 
     try:
-        updated = service.update(profile_id, **update_data)
+        updated = await service.update(profile_id, **update_data)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
@@ -135,7 +134,7 @@ async def patch_profile(
 async def get_user_profile(profile_id: UUID):
     service = container.get_profile_service()
     try:
-        profile = service.get_by_id(profile_id)
+        profile = await service.get_by_id(profile_id)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return ProfileRead.model_validate(profile)
@@ -146,7 +145,7 @@ async def delete_profile(
 ): 
     service = container.get_profile_service()
     try: 
-        service.delete(profile_id)
+        await service.delete(profile_id)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
@@ -166,7 +165,7 @@ async def patch_email(
 ):
     service = container.get_profile_service()
     try:
-        updated = service.update_email(profile_id, dto.email)
+        updated = await service.update_email(profile_id, dto.email)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except DuplicateProfileError as e:
@@ -185,7 +184,7 @@ async def patch_password(
 ):
     service = container.get_profile_service()
     try:
-        service.update_password(
+        await service.update_password(
             profile_id,
             old_password=dto.old_password,
             new_password=dto.new_password
@@ -210,7 +209,7 @@ async def patch_roles(
 ):
     service = container.get_profile_service()
     try:
-        updated = service.update_roles(profile_id, dto.roles)
+        updated = await service.update_roles(profile_id, dto.roles)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:

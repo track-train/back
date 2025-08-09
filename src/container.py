@@ -1,5 +1,6 @@
 import os
 from uuid import uuid4, UUID
+import asyncio
 
 from src.domain.lib.security import BcryptPasswordHasher
 from src.domain.services.profile import ProfileService
@@ -50,8 +51,9 @@ class Container:
             repo = self.profile_repo
         else:
             from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
-            session = self.SessionFactory()
-            repo = SqlAlchemyProfileRepository(session)
+            # For production, we'll create a service that manages its session internally
+            repo = SqlAlchemyProfileRepository(None)
+            repo._session_factory = self.SessionFactory
         return ProfileService(repo, self.hasher)
 
     def get_group_service(self):
@@ -59,8 +61,8 @@ class Container:
             repo = self.group_repo
         else:
             from src.adapters.sqlalchemy.repositories.group import SqlAlchemyGroupRepository
-            session = self.SessionFactory()
-            repo = SqlAlchemyGroupRepository(session)
+            repo = SqlAlchemyGroupRepository(None)
+            repo._session_factory = self.SessionFactory
         return GroupService(repo)
 
     def get_training_service(self):
@@ -68,8 +70,8 @@ class Container:
             repo = self.training_repo
         else:
             from src.adapters.sqlalchemy.repositories.training import SqlAlchemyTrainingRepository
-            session = self.SessionFactory()
-            repo = SqlAlchemyTrainingRepository(session)
+            repo = SqlAlchemyTrainingRepository(None)
+            repo._session_factory = self.SessionFactory
         return TrainingService(repo)
 
     def get_exercise_service(self):
@@ -77,8 +79,8 @@ class Container:
             repo = self.exercise_repo
         else:
             from src.adapters.sqlalchemy.repositories.exercise import SqlAlchemyExerciseRepository
-            session = self.SessionFactory()
-            repo = SqlAlchemyExerciseRepository(session)
+            repo = SqlAlchemyExerciseRepository(None)
+            repo._session_factory = self.SessionFactory
         return ExerciseService(repo)
 
     def get_diet_service(self):
@@ -86,8 +88,8 @@ class Container:
             repo = self.diet_repo
         else:
             from src.adapters.sqlalchemy.repositories.diet import SqlAlchemyDietRepository
-            session = self.SessionFactory()
-            repo = SqlAlchemyDietRepository(session)
+            repo = SqlAlchemyDietRepository(None)
+            repo._session_factory = self.SessionFactory
         return DietService(repo)
 
 container = Container()

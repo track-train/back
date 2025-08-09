@@ -3,23 +3,24 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 
-from src.entrypoints.api.deps.database import get_diet_service
+from src.container import container
 from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate, MealPlanCreate, MealPlanRead, MealPlanUpdate
 from src.domain.exceptions import NotFoundError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_coach_for_user_or_admin, require_owner_coach_for_user_or_admin
-from src.domain.services.diet import DietService
 
 router = APIRouter(prefix="/diets", tags=["diets"])
 
 @router.get("/mine", response_model=List[DietRead], dependencies=[Depends(get_current_user)])
-async def get_my_diets(user=Depends(get_current_user), svc: DietService = Depends(get_diet_service)):
+async def get_my_diets(user=Depends(get_current_user)):
+    svc = container.get_diet_service()
     owner_id = UUID(user["sub"])
     diets = await svc.list_owner_diets(owner_id)
     return [DietRead.model_validate(d) for d in diets]
 
 @router.get("/user/{target_user_id}", response_model=List[DietRead],
             dependencies=[Depends(require_coach_for_user_or_admin)])
-async def get_user_diets(target_user_id: UUID, svc: DietService = Depends(get_diet_service)):
+async def get_user_diets(target_user_id: UUID):
+    svc = container.get_diet_service()
     diets = await svc.list_owner_diets(target_user_id)
     return [DietRead.model_validate(d) for d in diets]
 
@@ -27,8 +28,8 @@ async def get_user_diets(target_user_id: UUID, svc: DietService = Depends(get_di
 @router.post("/{target_user_id}", response_model=DietRead, status_code=status.HTTP_201_CREATED)
 async def create_diet(target_user_id: UUID,
                 dto: DietCreate,
-                _=Depends(require_coach_for_user_or_admin),
-                svc: DietService = Depends(get_diet_service)):
+                _=Depends(require_coach_for_user_or_admin)):
+    svc = container.get_diet_service()
     try:
         d = await svc.create_diet(
             owner_id=target_user_id,
@@ -40,13 +41,13 @@ async def create_diet(target_user_id: UUID,
     return DietRead.model_validate(d)
 
 @router.patch("/{diet_id}/user/{target_user_id}", response_model=DietRead)
-def update_diet(diet_id: UUID,
+async def update_diet(diet_id: UUID,
                 target_user_id: UUID,
                 dto: DietUpdate,
                 _=Depends(require_coach_for_user_or_admin)):
     svc = container.get_diet_service()
     try:
-        updated = svc.update_diet(
+        updated = await svc.update_diet(
             diet_id=diet_id,
             name=dto.name,
             description=dto.description
@@ -56,11 +57,11 @@ def update_diet(diet_id: UUID,
     return DietRead.model_validate(updated)
 
 @router.delete("/{diet_id}/user/{target_user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_diet(diet_id: UUID,
+async def delete_diet(diet_id: UUID,
                 _=Depends(require_coach_for_user_or_admin)):
     svc = container.get_diet_service()
     try:
-        svc.delete_diet(diet_id)
+        await svc.delete_diet(diet_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Diet not found")
 
@@ -71,9 +72,9 @@ def delete_diet(diet_id: UUID,
     response_model=List[MacroPlanRead],
     dependencies=[Depends(require_owner_coach_for_user_or_admin)]
 )
-def list_macro_plans(diet_id: UUID, target_user_id: UUID):
+async def list_macro_plans(diet_id: UUID, target_user_id: UUID):
     svc = container.get_diet_service()
-    plans = svc.get_macro_plans_for_diet(diet_id)
+    plans = await svc.get_macro_plans_for_diet(diet_id)
     return [MacroPlanRead.model_validate(p) for p in plans]
 
 @router.get(
@@ -81,10 +82,10 @@ def list_macro_plans(diet_id: UUID, target_user_id: UUID):
     response_model=MacroPlanRead,
     dependencies=[Depends(require_owner_coach_for_user_or_admin)]
 )
-def get_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+async def get_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     svc = container.get_diet_service()
     try:
-        p = svc.get_macro_plan(plan_id)
+        p = await svc.get_macro_plan(plan_id)
     except NotFoundError:
         raise HTTPException(HTTP_404_NOT_FOUND, f"MacroPlan {plan_id} not found")
     return MacroPlanRead.model_validate(p)
@@ -95,14 +96,14 @@ def get_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def create_macro_plan(
+async def create_macro_plan(
     diet_id: UUID,
     target_user_id: UUID,
     dto: MacroPlanCreate
 ):
     svc = container.get_diet_service()
     try:
-        p = svc.create_macro_plan(
+        p = await svc.create_macro_plan(
             diet_id=diet_id,
             name=dto.name,
             carbohydrates=dto.carbohydrates,
@@ -117,16 +118,16 @@ def create_macro_plan(
     return MacroPlanRead.model_validate(p)
 
 @router.get("/macro_plans/mine", response_model=List[MacroPlanRead], dependencies=[Depends(get_current_user)])
-def list_my_macro_plans(user: UserPayload = Depends(get_current_user)):
+async def list_my_macro_plans(user: UserPayload = Depends(get_current_user)):
     svc = container.get_diet_service()
-    return [MacroPlanRead.model_validate(p) for p in svc.get_macro_plans_by_user_id(user["sub"])]
+    return [MacroPlanRead.model_validate(p) for p in await svc.get_macro_plans_by_user_id(user["sub"])]
 
 @router.patch(
     "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",
     response_model=MacroPlanRead,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def update_macro_plan(
+async def update_macro_plan(
     diet_id: UUID,
     target_user_id: UUID,
     plan_id: UUID,
@@ -134,7 +135,7 @@ def update_macro_plan(
 ):
     svc = container.get_diet_service()
     try:
-        updated = svc.update_macro_plan(
+        updated = await svc.update_macro_plan(
             plan_id=plan_id,
             name=dto.name,
             carbohydrates=dto.carbohydrates,
@@ -153,10 +154,10 @@ def update_macro_plan(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+async def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     svc = container.get_diet_service()
     try:
-        svc.delete_macro_plan(plan_id)
+        await svc.delete_macro_plan(plan_id)
     except NotFoundError:
         raise HTTPException(HTTP_404_NOT_FOUND, "MacroPlan not found")
     
@@ -167,9 +168,9 @@ def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     response_model=List[MealPlanRead],
     dependencies=[Depends(require_owner_coach_for_user_or_admin)]
 )
-def list_meal_plans(diet_id: UUID, target_user_id: UUID):
+async def list_meal_plans(diet_id: UUID, target_user_id: UUID):
     svc = container.get_diet_service()
-    plans = svc.get_meal_plans_by_diet(diet_id)
+    plans = await svc.get_meal_plans_by_diet(diet_id)
     return [MealPlanRead.model_validate(p) for p in plans]
 
 @router.get(
@@ -177,10 +178,10 @@ def list_meal_plans(diet_id: UUID, target_user_id: UUID):
     response_model=MealPlanRead,
     dependencies=[Depends(require_owner_coach_for_user_or_admin)]
 )
-def get_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+async def get_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     svc = container.get_diet_service()
     try:
-        mp = svc.get_meal_plan_by_id(plan_id)
+        mp = await svc.get_meal_plan_by_id(plan_id)
     except NotFoundError:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
@@ -194,14 +195,14 @@ def get_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def create_meal_plan(
+async def create_meal_plan(
     diet_id: UUID,
     target_user_id: UUID,
     dto: MealPlanCreate
 ):
     svc = container.get_diet_service()
     try:
-        mp = svc.create_meal_plan(
+        mp = await svc.create_meal_plan(
             diet_id=diet_id,
             name=dto.name,
             meals=dto.meals,
@@ -215,10 +216,10 @@ def create_meal_plan(
     response_model=List[MealPlanRead],
     dependencies=[Depends(get_current_user)]
 )
-def list_my_meal_plans(user = Depends(get_current_user)):
+async def list_my_meal_plans(user = Depends(get_current_user)):
     svc = container.get_diet_service()
     user_id = UUID(user["sub"])
-    plans = svc.get_meal_plans_by_user(user_id)
+    plans = await svc.get_meal_plans_by_user(user_id)
     return [MealPlanRead.model_validate(p) for p in plans]
 
 @router.patch(
@@ -226,7 +227,7 @@ def list_my_meal_plans(user = Depends(get_current_user)):
     response_model=MealPlanRead,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def update_meal_plan(
+async def update_meal_plan(
     diet_id: UUID,
     target_user_id: UUID,
     plan_id: UUID,
@@ -234,7 +235,7 @@ def update_meal_plan(
 ):
     svc = container.get_diet_service()
     try:
-        updated = svc.update_meal_plan(
+        updated = await svc.update_meal_plan(
             plan_id=plan_id,
             name=dto.name,
             meals=dto.meals,
@@ -251,10 +252,10 @@ def update_meal_plan(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_coach_for_user_or_admin)]
 )
-def delete_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
+async def delete_meal_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     svc = container.get_diet_service()
     try:
-        svc.delete_meal_plan(plan_id)
+        await svc.delete_meal_plan(plan_id)
     except NotFoundError:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,

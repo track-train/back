@@ -15,19 +15,19 @@ from src.container import container
 router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.post("", response_model=GroupRead, status_code=201, dependencies=[Depends(require_roles("admin", "coach"))])
-def create_group(
+async def create_group(
     dto: GroupCreate,
     user=Depends(get_current_user)
 ):
     service = container.get_group_service()
-    grp = service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
+    grp = await service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
     return GroupRead.model_validate(grp)
 
 @router.get("", response_model=List[GroupRead], dependencies=[Depends(get_current_user)])
-def list_groups():
+async def list_groups():
     service = container.get_group_service()
     try:
-        groups = service.get_all_groups()
+        groups = await service.get_all_groups()
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     return [GroupRead.model_validate(g) for g in groups]
