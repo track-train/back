@@ -35,7 +35,7 @@ async def list_groups():
 @router.get("/{group_id}", response_model=GroupRead, dependencies=[Depends(get_current_user)])
 async def get_group(group_id: UUID):
     service = container.get_group_service()
-    grp = await service._repo.find_by_id(group_id)
+    grp = await service._repo.find_by_id(group_id)  # ✅ Ajout d'await
     if not grp:
         raise HTTPException(404, "Group not found")
     return GroupRead.model_validate(grp)
@@ -44,7 +44,7 @@ async def get_group(group_id: UUID):
 @router.patch("/{group_id}", response_model=GroupRead, dependencies=[Depends(require_group_owner_or_admin)])
 async def patch_group(group_id: UUID, dto: GroupUpdate):
     service = container.get_group_service()
-    existing = await service._repo.find_by_id(group_id)
+    existing = await service._repo.find_by_id(group_id)  # ✅ Ajout d'await
     if not existing:
         raise HTTPException(404, "Group not found")
     updated = existing
@@ -52,7 +52,7 @@ async def patch_group(group_id: UUID, dto: GroupUpdate):
         updated.name = dto.name
     if dto.description is not None:
         updated.description = dto.description
-    grp = await service.update(updated)
+    grp = await service.update(updated)  # ✅ Ajout d'await
     return GroupRead.model_validate(grp)
 
 @router.delete("/{group_id}", status_code=204, dependencies=[Depends(require_group_owner_or_admin)])
@@ -113,4 +113,4 @@ async def get_my_coaches(user=Depends(get_current_user)):
         return [CoachProfileRead.model_validate(coach) for coach in coaches]
     except NotFoundError as e:
         raise HTTPException(404, str(e))
-    
+

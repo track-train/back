@@ -43,10 +43,20 @@ class GroupService:
         return await self._repo.update(group)
     
     async def add_member(self, group_id: UUID, user_id: UUID) -> None:
+        # Vérifier que le groupe existe
         group = await self._repo.find_by_id(group_id)
         if not group:
-            raise NotFoundError(f"Group with id {group_id} not found")
+            raise NotFoundError(f"Group {group_id} not found")
         
+        # Vérifier que l'utilisateur existe
+        from src.container import container
+        profile_service = container.get_profile_service()  # ou injection via constructeur
+        try:
+            user = await profile_service.get_by_id(user_id)
+        except NotFoundError:
+            raise NotFoundError(f"User {user_id} not found")
+        
+        # Ajouter le membre
         await self._repo.add_member(group_id, user_id)
 
     async def remove_member(self, group_id: UUID, user_id: UUID) -> None:

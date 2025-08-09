@@ -52,15 +52,41 @@ class SqlAlchemyGroupRepository(GroupRepository):
 
     
     async def add_member(self, group_id: UUID, user_id: UUID) -> None:
-        orm_group = await self._session.get(ORMGroup, group_id)
-        if not orm_group:
-            raise NotFoundError(f"Groupe {group_id} not found")
-        orm_profile = await self._session.get(ORMProfile, user_id)
-        if not orm_profile:
-            raise NotFoundError(f"Profile {user_id} not found")
-        if orm_profile not in orm_group.users:
-            orm_group.users.append(orm_profile)
-            await self._session.commit()
+        async with self._session_factory() as session:
+            # Vérifier que le groupe existe
+            group_stmt = select(ORMGroup).where(ORMGroup.id == group_id)
+            group_result = await session.execute(group_stmt)
+            group = group_result.scalar_one_or_none()
+            
+            if not group:
+                raise NotFoundError(f"Group {group_id} not found")
+            
+            # Vérifier que l'utilisateur existe
+            user_stmt = select(ORMProfile).where(ORMProfile.id == user_id)
+            user_result = await session.execute(user_stmt)
+            user = user_result.scalar_one_or_none()
+            
+            if not user:
+                raise NotFoundError(f"User {user_id} not found")
+            
+            # Vérifier que l'utilisateur n'est pas déjà membre
+            existing_stmt = select(group_users).where(
+                (group_users.c.group_id == group_id) & 
+                (group_users.c.profile_id == user_id)
+            )
+            existing_result = await session.execute(existing_stmt)
+            existing = existing_result.scalar_one_or_none()
+            
+            if existing:
+                return  # Déjà membre, on ne fait rien
+            
+            # Ajouter la relation
+            insert_stmt = group_users.insert().values(
+                group_id=group_id,
+                profile_id=user_id
+            )
+            await session.execute(insert_stmt)
+            await session.commit()
 
     async def remove_member(self, group_id: UUID, user_id: UUID) -> None:
         orm_group = await self._session.get(ORMGroup, group_id)

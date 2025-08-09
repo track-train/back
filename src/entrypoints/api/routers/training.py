@@ -258,7 +258,8 @@ async def list_validations(
 ):
     service = container.get_training_service()
     try:
-        return await service.get_validates_for_task(task_id)
+        validations = await service.get_validates_for_task(task_id)
+        return [ValidateRead.model_validate(v) for v in validations]
     except NotFoundError:
         return []
     
@@ -291,6 +292,7 @@ async def get_validations_by_training(
 ):
     service = container.get_training_service()
     try:
-        return await service.get_validate_by_training_id(training_id)
+        validations = await service.get_validate_by_training_id(training_id)
+        return [ValidateRead.model_validate(v) for v in validations]
     except NotFoundError:
         return []

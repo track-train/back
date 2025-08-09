@@ -121,7 +121,8 @@ async def create_macro_plan(
 @router.get("/macro_plans/mine", response_model=List[MacroPlanRead], dependencies=[Depends(get_current_user)])
 async def list_my_macro_plans(user: UserPayload = Depends(get_current_user)):
     svc = container.get_diet_service()
-    return [MacroPlanRead.model_validate(p) for p in svc.get_macro_plans_by_user_id(user["sub"])]
+    plans = await svc.get_macro_plans_by_user_id(UUID(user["sub"]))  # ✅ Ajout d'await
+    return [MacroPlanRead.model_validate(p) for p in plans]
 
 @router.patch(
     "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",
@@ -220,7 +221,7 @@ async def create_meal_plan(
 async def list_my_meal_plans(user = Depends(get_current_user)):
     svc = container.get_diet_service()
     user_id = UUID(user["sub"])
-    plans = await svc.get_meal_plans_by_user(user_id)
+    plans = await svc.get_meal_plans_by_user(user_id)  # ✅ Ajout d'await
     return [MealPlanRead.model_validate(p) for p in plans]
 
 @router.patch(
