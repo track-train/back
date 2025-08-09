@@ -5,12 +5,13 @@ from sqlalchemy.sql.functions import user
 from starlette.status import HTTP_404_NOT_FOUND
 
 
-from src.container import container
+from src.entrypoints.api.deps.database import get_profile_service
 from src.domain.lib.jwt_manager import create_access_token
 from src.entrypoints.api.schemas.profile import EmailUpdate, PasswordUpdate, ProfileCreate, ProfileRead, ProfileWithToken, RolesUpdate, TokenResponse, ProfileLogin, ProfilUpdate, CoachProfileRead
 from src.domain.exceptions import DuplicateProfileError, InvalidConfirmPasswordError, InvalidFormatEmailError, NotFoundError, AuthenticationError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_owner_or_admin
 from src.entrypoints.api.deps.roles import require_roles
+from src.domain.services.profile import ProfileService
 
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
@@ -18,11 +19,10 @@ router = APIRouter(prefix="/profiles", tags=["profiles"])
 @router.post("", response_model=ProfileWithToken, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     dto: ProfileCreate,
+    service: ProfileService = Depends(get_profile_service)
 ):
-    service = container.get_profile_service()
-
     try:
-        profile = service.create(
+        profile = await service.create(
             email=dto.email,
             raw_password=dto.password,
             confirm_password=dto.confirm_password,

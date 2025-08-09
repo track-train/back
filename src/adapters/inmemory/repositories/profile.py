@@ -13,13 +13,13 @@ class InMemoryProfileRepository(ProfileRepository):
             for profile in initial:
                 self._data[profile.id] = profile
 
-    def find_by_email(self, email: str) -> Optional[DomainProfile]:
+    async def find_by_email(self, email: str) -> Optional[DomainProfile]:
         for profile in self._data.values():
             if profile.email == email:
                 return profile
         return None
 
-    def add(self, profile: DomainProfile) -> DomainProfile:
+    async def add(self, profile: DomainProfile) -> DomainProfile:
         new_id = uuid4()
         profile.id = new_id
         if not getattr(profile, "created_at", None):
@@ -27,23 +27,23 @@ class InMemoryProfileRepository(ProfileRepository):
         self._data[new_id] = profile
         return profile
 
-    def find_by_id(self, id: UUID) -> Optional[DomainProfile]:
+    async def find_by_id(self, id: UUID) -> Optional[DomainProfile]:
         return self._data.get(id)
 
-    def delete(self, id: UUID) -> None:
+    async def delete(self, id: UUID) -> None:
         self._data.pop(id, None)
 
-    def update(self, profile: DomainProfile) -> Optional[DomainProfile]:
+    async def update(self, profile: DomainProfile) -> Optional[DomainProfile]:
         if profile.id in self._data:
             self._data[profile.id] = profile
             return profile
         return None
 
-    def find_all_users(self) -> List[DomainProfile]:
+    async def find_all_users(self) -> List[DomainProfile]:
         return [p for p in self._data.values() if "user" in (p.roles or [])]
 
-    def find_all_coachs(self) -> List[DomainProfile]:
+    async def find_all_coachs(self) -> List[DomainProfile]:
         return [p for p in self._data.values() if "coach" in (p.roles or [])]
 
-    def find_all(self) -> List[DomainProfile]:
+    async def find_all(self) -> List[DomainProfile]:
         return list(self._data.values())
