@@ -56,4 +56,10 @@ class ExerciseService:
         if not exercises:
             raise NotFoundError("No exercises found")
         return exercises
+
+    async def get_by_id(self, exercise_id: UUID) -> DomainExercise:
+        exercise = await self._repo.find_by_id(exercise_id)
+        if not exercise:
+            raise NotFoundError(f"Exercise with id {exercise_id} not found")
+        return exercise
     

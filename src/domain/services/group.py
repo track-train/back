@@ -82,6 +82,12 @@ class GroupService:
         
         return groups
 
+    async def get_by_id(self, group_id: UUID) -> DomainGroup:
+        group = await self._repo.find_by_id(group_id)
+        if not group:
+            raise NotFoundError(f"Group with id {group_id} not found")
+        return group
+
     async def get_my_coaches(self, user_id: UUID) -> List[DomainProfile]:
         groups = await self._repo.find_groups_by_member_id(user_id)
         if not groups:
@@ -97,7 +103,7 @@ class GroupService:
         coaches = []
         for coach_id in coach_ids:
             try:
-                coach = profile_service._repo.find_by_id(coach_id)
+                coach = await profile_service.get_by_id(coach_id)
                 if coach and "coach" in coach.roles:
                     coaches.append(coach)
             except NotFoundError:

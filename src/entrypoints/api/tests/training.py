@@ -37,6 +37,72 @@ import pytest
 @pytest.mark.asyncio
 class TestTrainingScenario:
     
+    # Setup: ensure all required tokens exist
+    async def test_00_setup_prerequisites(self, client, test_state):
+        # Setup user if not exists
+        if 'user_token' not in test_state:
+            payload = {
+                "email": "alice@example.com",
+                "password": "Secret123!",
+                "confirm_password": "Secret123!",
+                "name": "Alice",
+                "sex": "F",
+                "age": 28
+            }
+            r = await client.post("/profiles", json=payload)
+            assert r.status_code == 201
+            body = r.json()
+            test_state["user_token"] = body["token"]["access_token"]
+            test_state["user_uuid"] = body["profile"]["id"]
+
+        # Setup coach if not exists
+        if 'coach_token' not in test_state:
+            payload = {
+                "email": "coach@example.com",
+                "password": "CoachPass123!",
+                "confirm_password": "CoachPass123!",
+                "name": "Coach",
+                "sex": "M",
+                "age": 35
+            }
+            r = await client.post("/profiles", json=payload)
+            assert r.status_code == 201
+            body = r.json()
+            test_state["coach_token"] = body["token"]["access_token"]
+            test_state["coach_uuid"] = body["profile"]["id"]
+
+        # Setup admin if not exists
+        if 'admin_token' not in test_state:
+            r = await client.post(
+                "/profiles/login",
+                json={"email": "admin@mail.fr", "password": "123456789"}
+            )
+            assert r.status_code == 200
+            test_state["admin_token"] = r.json()["access_token"]
+
+        # Promote coach if not done
+        if 'coach_promoted' not in test_state:
+            update_data = {"roles": ["user", "coach"]}
+            r = await client.patch(
+                f"/profiles/{test_state['coach_uuid']}/roles",
+                json=update_data,
+                headers={"Authorization": f"Bearer {test_state['admin_token']}"}
+            )
+            assert r.status_code == 200
+            roles = r.json()["roles"]
+            assert "coach" in roles
+            test_state['coach_promoted'] = True
+
+        # Re-login coach to get new token with coach role
+        if 'coach_relogged' not in test_state:
+            r = await client.post(
+                "/profiles/login",
+                json={"email": "coach@example.com", "password": "CoachPass123!"}
+            )
+            assert r.status_code == 200
+            test_state["coach_token"] = r.json()["access_token"]
+            test_state['coach_relogged'] = True
+
 # coach create an group → 201
     async def test_01_coach_create_group(self, client, test_state):
         payload = {"name": "Group1", "description": "Test Group"}
