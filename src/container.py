@@ -53,7 +53,6 @@ class Container:
         else:
             from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
             
-            # Create a dynamic wrapper that manages sessions per method call
             class SessionManagedRepository:
                 def __init__(self, repo_class, session_factory):
                     self.repo_class = repo_class

@@ -20,14 +20,14 @@ async def create_group(
     user=Depends(get_current_user)
 ):
     service = container.get_group_service()
-    grp = await await service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
+    grp = await service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
     return GroupRead.model_validate(grp)
 
 @router.get("", response_model=List[GroupRead], dependencies=[Depends(get_current_user)])
 async def list_groups():
     service = container.get_group_service()
     try:
-        groups = await await service.get_all_groups()
+        groups = await service.get_all_groups()
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     return [GroupRead.model_validate(g) for g in groups]
