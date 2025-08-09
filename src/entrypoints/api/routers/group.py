@@ -35,7 +35,7 @@ async def list_groups():
 @router.get("/{group_id}", response_model=GroupRead, dependencies=[Depends(get_current_user)])
 async def get_group(group_id: UUID):
     service = container.get_group_service()
-    grp = service._repo.find_by_id(group_id)
+    grp = await service._repo.find_by_id(group_id)
     if not grp:
         raise HTTPException(404, "Group not found")
     return GroupRead.model_validate(grp)
@@ -44,7 +44,7 @@ async def get_group(group_id: UUID):
 @router.patch("/{group_id}", response_model=GroupRead, dependencies=[Depends(require_group_owner_or_admin)])
 async def patch_group(group_id: UUID, dto: GroupUpdate):
     service = container.get_group_service()
-    existing = service._repo.find_by_id(group_id)
+    existing = await service._repo.find_by_id(group_id)
     if not existing:
         raise HTTPException(404, "Group not found")
     updated = existing

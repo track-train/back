@@ -7,6 +7,7 @@ from src.container import container
 from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate, MealPlanCreate, MealPlanRead, MealPlanUpdate
 from src.domain.exceptions import NotFoundError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_coach_for_user_or_admin, require_owner_coach_for_user_or_admin
+from src.container import container
 
 router = APIRouter(prefix="/diets", tags=["diets"])
 
@@ -120,7 +121,7 @@ async def create_macro_plan(
 @router.get("/macro_plans/mine", response_model=List[MacroPlanRead], dependencies=[Depends(get_current_user)])
 async def list_my_macro_plans(user: UserPayload = Depends(get_current_user)):
     svc = container.get_diet_service()
-    return [MacroPlanRead.model_validate(p) for p in await svc.get_macro_plans_by_user_id(user["sub"])]
+    return [MacroPlanRead.model_validate(p) for p in svc.get_macro_plans_by_user_id(user["sub"])]
 
 @router.patch(
     "/{diet_id}/user/{target_user_id}/macro_plans/{plan_id}",

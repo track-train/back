@@ -20,6 +20,7 @@ async def create_profile(
     dto: ProfileCreate,
 ):
     service = container.get_profile_service()
+
     try:
         profile = await service.create(
             email=dto.email,
