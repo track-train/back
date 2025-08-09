@@ -3,36 +3,34 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND
 
-from src.container import container
+from src.entrypoints.api.deps.database import get_diet_service
 from src.entrypoints.api.schemas.diet import DietCreate, DietRead, DietUpdate, MacroPlanCreate, MacroPlanRead, MacroPlanUpdate, MealPlanCreate, MealPlanRead, MealPlanUpdate
 from src.domain.exceptions import NotFoundError
 from src.entrypoints.api.deps.auth import UserPayload, get_current_user, require_coach_for_user_or_admin, require_owner_coach_for_user_or_admin
-from src.container import container
+from src.domain.services.diet import DietService
 
 router = APIRouter(prefix="/diets", tags=["diets"])
 
 @router.get("/mine", response_model=List[DietRead], dependencies=[Depends(get_current_user)])
-def get_my_diets(user=Depends(get_current_user)):
-    svc = container.get_diet_service()
+async def get_my_diets(user=Depends(get_current_user), svc: DietService = Depends(get_diet_service)):
     owner_id = UUID(user["sub"])
-    diets = svc.list_owner_diets(owner_id)
+    diets = await svc.list_owner_diets(owner_id)
     return [DietRead.model_validate(d) for d in diets]
 
 @router.get("/user/{target_user_id}", response_model=List[DietRead],
             dependencies=[Depends(require_coach_for_user_or_admin)])
-def get_user_diets(target_user_id: UUID):
-    svc = container.get_diet_service()
-    diets = svc.list_owner_diets(target_user_id)
+async def get_user_diets(target_user_id: UUID, svc: DietService = Depends(get_diet_service)):
+    diets = await svc.list_owner_diets(target_user_id)
     return [DietRead.model_validate(d) for d in diets]
 
 
 @router.post("/{target_user_id}", response_model=DietRead, status_code=status.HTTP_201_CREATED)
-def create_diet(target_user_id: UUID,
+async def create_diet(target_user_id: UUID,
                 dto: DietCreate,
-                _=Depends(require_coach_for_user_or_admin)):
-    svc = container.get_diet_service()
+                _=Depends(require_coach_for_user_or_admin),
+                svc: DietService = Depends(get_diet_service)):
     try:
-        d = svc.create_diet(
+        d = await svc.create_diet(
             owner_id=target_user_id,
             name=dto.name,
             description=dto.description or "",
