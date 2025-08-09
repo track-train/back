@@ -12,31 +12,31 @@ from src.container import container
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
 @router.get("/mine", response_model=List[TrainingRead], dependencies=[Depends(get_current_user)])
-def get_my_trainings(user=Depends(get_current_user)):
+async def get_my_trainings(user=Depends(get_current_user)):
     service = container.get_training_service()
     try:
         owner_id = UUID(user["sub"])
-        trainings = service.get_all_owner_trainings(owner_id)
+        trainings = await service.get_all_owner_trainings(owner_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Trainings for user {owner_id} not found")
 
     return [TrainingRead.model_validate(t) for t in trainings]
 
 @router.get("/user/{target_user_id}", response_model=List[TrainingRead], dependencies=[Depends(require_coach_for_user_or_admin)])
-def get_user_trainings(target_user_id: UUID, user=Depends(get_current_user)):
+async def get_user_trainings(target_user_id: UUID, user=Depends(get_current_user)):
     service = container.get_training_service()
     try:
-        trainings = service.get_all_owner_trainings(target_user_id)
+        trainings = await service.get_all_owner_trainings(target_user_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Trainings for user {target_user_id} not found")
     
     return [TrainingRead.model_validate(t) for t in trainings]
 
 @router.get("/{training_id}", response_model=TrainingRead, dependencies=[Depends(require_training_owner_or_coach_or_admin)])
-def get_training(training_id: UUID, user=Depends(get_current_user)):
+async def get_training(training_id: UUID, user=Depends(get_current_user)):
     service = container.get_training_service()
     try:
-        training = service.get_training(training_id)
+        training = await service.get_training(training_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Training {training_id} not found")
     
@@ -45,11 +45,11 @@ def get_training(training_id: UUID, user=Depends(get_current_user)):
 
 
 @router.post("/{target_user_id}", response_model=TrainingRead, status_code=201)
-def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require_coach_for_user_or_admin)):
+async def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require_coach_for_user_or_admin)):
     service = container.get_training_service()
     
     try:
-        training = service.create_training(
+        training = await service.create_training(
             owner_id=target_user_id,
             name=dto.name,
             description=dto.description
@@ -63,7 +63,7 @@ def create_training(target_user_id: UUID, dto: TrainingCreate, _=Depends(require
 
 
 @router.patch("/{training_id}/user/{target_user_id}", response_model=TrainingRead)
-def update_training(
+async def update_training(
     training_id: UUID,
     target_user_id: UUID,
     dto: TrainingUpdate,
@@ -71,7 +71,7 @@ def update_training(
 ):
     service = container.get_training_service()
     try:
-        updated = service.update_training(
+        updated = await service.update_training(
             training_id=training_id,
             name=dto.name,
             description=dto.description,
@@ -84,11 +84,11 @@ def update_training(
     return TrainingRead.model_validate(updated)
 
 @router.delete("/{training_id}/user/{target_user_id}", status_code=204)
-def delete_training(training_id: UUID, user=Depends(require_coach_for_user_or_admin)):
+async def delete_training(training_id: UUID, user=Depends(require_coach_for_user_or_admin)):
     service = container.get_training_service()
     
     try:
-        service.delete_training(training_id)
+        await service.delete_training(training_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"Training {training_id} not found")
     
@@ -101,13 +101,13 @@ def delete_training(training_id: UUID, user=Depends(require_coach_for_user_or_ad
     "/{training_id}/tasks",
     response_model=List[TaskRead],
 )
-def list_tasks(
+async def list_tasks(
     training_id: UUID,
     _ = Depends(require_training_owner_or_coach_or_admin),
 ):
     service = container.get_training_service()
     try:
-        tasks = service.list_tasks_for_training(training_id)
+        tasks = await service.list_tasks_for_training(training_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -122,14 +122,14 @@ def list_tasks(
     status_code=status.HTTP_201_CREATED,
     summary="Créer une tâche dans un training",
 )
-def create_task(
+async def create_task(
     training_id: UUID,
     dto: TaskCreate,
     _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
-        task = service.create_task(
+        task = await service.create_task(
             training_id=training_id,
             exercise_name=dto.exercise_name,
             rest_time=dto.rest_time,
@@ -151,14 +151,14 @@ def create_task(
     response_model=TaskRead,
     summary="Récupérer une tâche",
 )
-def get_task(
+async def get_task(
     training_id: UUID,
     task_id: UUID,
     _ = Depends(require_training_owner_or_coach_or_admin),
 ):
     service = container.get_training_service()
     try:
-        task = service.get_task(task_id)
+        task = await service.get_task(task_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -172,7 +172,7 @@ def get_task(
     response_model=TaskRead,
     summary="Mettre à jour une tâche",
 )
-def update_task(
+async def update_task(
     training_id: UUID,
     task_id: UUID,
     dto: TaskUpdate,
@@ -180,7 +180,7 @@ def update_task(
 ):
     service = container.get_training_service()
     try:
-        updated = service.update_task(
+        updated = await service.update_task(
             task_id=task_id,
             exercise_name=dto.exercise_name,
             rest_time=dto.rest_time,
@@ -202,14 +202,14 @@ def update_task(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Supprimer une tâche",
 )
-def delete_task(
+async def delete_task(
     training_id: UUID,
     task_id: UUID,
     _ = Depends(require_coach_for_user_or_admin),
 ):
     service = container.get_training_service()
     try:
-        service.delete_task(task_id)
+        await service.delete_task(task_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -225,7 +225,7 @@ def delete_task(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_training_owner_or_admin)]
 )
-def create_validation(
+async def create_validation(
     training_id: UUID,
     task_id: UUID,
     dto: ValidateCreate,
@@ -233,7 +233,7 @@ def create_validation(
 ):
     service = container.get_training_service()
     try:
-        v = service.create_validate(
+        v = await service.create_validate(
             task_id=task_id,
             rest_time=dto.rest_time,
             repetitions=dto.repetitions,
@@ -251,14 +251,14 @@ def create_validation(
     response_model=List[ValidateRead],
     dependencies=[Depends(require_training_owner_or_coach_or_admin)]
 )
-def list_validations(
+async def list_validations(
     training_id: UUID,
     task_id: UUID,
     user=Depends(get_current_user),
 ):
     service = container.get_training_service()
     try:
-        return service.get_validates_for_task(task_id)
+        return await service.get_validates_for_task(task_id)
     except NotFoundError:
         return []
     
@@ -267,7 +267,7 @@ def list_validations(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_training_owner_or_admin)]
 )
-def delete_validation(
+async def delete_validation(
     training_id: UUID,
     task_id: UUID,
     validation_id: UUID,
@@ -275,7 +275,7 @@ def delete_validation(
 ):
     service = container.get_training_service()
     try:
-        service.delete_validate(validation_id)
+        await service.delete_validate(validation_id)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
     
@@ -285,12 +285,12 @@ def delete_validation(
     response_model=List[ValidateRead],
     dependencies=[Depends(require_training_owner_or_coach_or_admin)]
 )
-def get_validations_by_training(
+async def get_validations_by_training(
     training_id: UUID,
     user=Depends(get_current_user),
 ):
     service = container.get_training_service()
     try:
-        return service.get_validate_by_training_id(training_id)
+        return await service.get_validate_by_training_id(training_id)
     except NotFoundError:
         return []
