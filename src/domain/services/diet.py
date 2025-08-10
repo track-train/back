@@ -45,7 +45,6 @@ class DietService:
             raise NotFoundError(f"Diet {diet_id} not found")
         await self._repo.delete_diet(diet_id)
     
-    # Macro Plan methods
 
     async def create_macro_plan(
         self,
@@ -117,7 +116,6 @@ class DietService:
         await self.get_macro_plan(plan_id)
         await self._repo.delete_macro_plan(plan_id)
     
-    # Meal Plan methods
 
     async def create_meal_plan(
         self,
@@ -173,4 +171,3 @@ class DietService:
     async def delete_meal_plan(self, plan_id: UUID) -> None:
         await self.get_meal_plan_by_id(plan_id)
         await self._repo.delete_meal_plan(plan_id)
-

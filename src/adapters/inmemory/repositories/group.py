@@ -60,9 +60,12 @@ class InMemoryGroupRepository(GroupRepository):
         user_ids = self._members.get(group_id, [])
         members = []
         for uid in user_ids:
-            member = await self._profile_repo.find_by_id(uid)
-            if member:
-                members.append(member)
+            try:
+                profile = await self._profile_repo.find_by_id(uid)
+                if profile:
+                    members.append(profile)
+            except:
+                pass
         return members
 
     async def find_by_owner_id(self, owner_id: UUID) -> Optional[List[DomainGroup]]:

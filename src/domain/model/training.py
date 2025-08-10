@@ -23,8 +23,8 @@ class Validate:
             "repetitions": self.repetitions,
             "set_number": self.set_number,
             "rir": self.rir,
-            "updated_at": self.updated_at.isoformat(),
-            "succeeded_at": self.succeeded_at.isoformat() if self.succeeded_at else None,
+            "updated_at": self.updated_at,
+            "succeeded_at": self.succeeded_at if self.succeeded_at else None,
         }
 
 @dataclass
@@ -50,7 +50,7 @@ class Task:
             "set_number": self.set_number,
             "method": self.method,
             "rir": self.rir,
-            "updated_at": self.updated_at.isoformat(),
+            "updated_at": self.updated_at,
             "validate": [v.to_orm_dict() for v in self.validate] if self.validate else None,
         }
 
@@ -69,6 +69,6 @@ class Training:
             "owner_id": str(self.owner_id),
             "name": self.name,
             "description": self.description,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at,
             "tasks": [task.to_orm_dict() for task in self.tasks],
         }

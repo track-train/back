@@ -97,5 +97,4 @@ async def delete_exercise(
         await service.delete_exercise(exercise_id)
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Exercise not found")
-
-
+    

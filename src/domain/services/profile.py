@@ -13,6 +13,7 @@ class ProfileService:
         self._repo = repo
         self._hasher = hasher
 
+
     async def create(self,
                *,
                email: str,
@@ -55,22 +56,23 @@ class ProfileService:
             created_at=datetime.utcnow()
         )
         
-        return await self._repo.add(profile)
+        return  await self._repo.add(profile)
     
     async def delete(self, profile_id: UUID):
         profile = await self._repo.find_by_id(profile_id)
         if not profile:
             raise NotFoundError(f"Profile with id {profile_id} not found")
         
+        
         await self._repo.delete(profile_id)
 
     async def login(self, email: str, password: str) -> DomainProfile:
+        profile = await self._repo.find_by_email(email)
+
         email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
         if not re.match(email_regex, email):
             raise InvalidFormatEmailError(f"Email {email} has invalid format")
 
-        profile = await self._repo.find_by_email(email)
-        
         if not profile:
             raise AuthenticationError(f"Invalid password or email")
         

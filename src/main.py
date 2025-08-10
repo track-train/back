@@ -40,9 +40,9 @@ app.include_router(training_router)
 app.include_router(diet_router)
 
 
-@app.on_event("startup")
-async def startup_event():
-    await init_db()  # ✅ Créer les tables au démarrage
+# @app.on_event("startup")
+# async def startup_event():
+#     await init_db()  # ✅ Créer les tables au démarrage
 
 
 

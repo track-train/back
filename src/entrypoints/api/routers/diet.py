@@ -66,7 +66,7 @@ async def delete_diet(diet_id: UUID,
     except NotFoundError:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Diet not found")
 
-# Macro Plan endpoints
+
 
 @router.get(
     "/{diet_id}/user/{target_user_id}/macro_plans",
@@ -163,7 +163,7 @@ async def delete_macro_plan(diet_id: UUID, target_user_id: UUID, plan_id: UUID):
     except NotFoundError:
         raise HTTPException(HTTP_404_NOT_FOUND, "MacroPlan not found")
     
-# Meal Plan endpoints
+
 
 @router.get(
     "/{diet_id}/user/{target_user_id}/meal_plans",

@@ -12,7 +12,6 @@ class InMemoryDietRepository(DietRepository):
         self._macro_plans: dict[UUID, DomainMacroPlan] = {}
         self._meal_plans: dict[UUID, DomainMealPlan] = {}
 
-    # Diet methods
     async def add_diet(self, diet: DomainDiet) -> DomainDiet:
         new_id = uuid4()
         diet.id = new_id
@@ -37,12 +36,11 @@ class InMemoryDietRepository(DietRepository):
         self._diets.pop(id, None)
         for mid in list(self._macro_plans.keys()):
             if self._macro_plans[mid].diet_id == id:
-                await self.delete_macro_plan(mid)
+                self.delete_macro_plan(mid)
         for pid in list(self._meal_plans.keys()):
             if self._meal_plans[pid].diet_id == id:
-                await self.delete_meal_plan(pid)
+                self.delete_meal_plan(pid)
 
-    # MacroPlan methods
     async def add_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
         new_id = uuid4()
         macro_plan.id = new_id
@@ -67,7 +65,6 @@ class InMemoryDietRepository(DietRepository):
     async def delete_macro_plan(self, id: UUID) -> None:
         self._macro_plans.pop(id, None)
 
-    # MealPlan methods
     async def add_meal_plan(self, meal_plan: DomainMealPlan) -> DomainMealPlan:
         new_id = uuid4()
         meal_plan.id = new_id

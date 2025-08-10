@@ -1,7 +1,6 @@
 import os
 from uuid import uuid4, UUID
 import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from src.domain.lib.security import BcryptPasswordHasher
 from src.domain.services.profile import ProfileService
@@ -9,7 +8,6 @@ from src.domain.services.group import GroupService
 from src.domain.services.training import TrainingService
 from src.domain.services.exercise import ExerciseService
 from src.domain.services.diet import DietService
-from src.adapters.sqlalchemy.db import SessionLocal, init_db
 
 class Container:
     def __init__(self, env: str | None = None):
@@ -18,6 +16,8 @@ class Container:
 
         if self.env in ("dev", "test"):
             from src.domain.model.profile import Profile as DomainProfile
+            from datetime import datetime
+
             plain_pw = "123456789"
             hashed_pw = self.hasher.hash(plain_pw)
             admin = DomainProfile(
@@ -30,9 +30,9 @@ class Container:
                 contact=None,
                 pricing=None,
                 description=None,
-                legacy=False,
+                legacy=None,
                 roles=["admin"],
-                created_at=None,
+                created_at=datetime.now(),
             )
             from src.adapters.inmemory.repositories.profile import InMemoryProfileRepository
             from src.adapters.inmemory.repositories.group import InMemoryGroupRepository
@@ -45,11 +45,8 @@ class Container:
             self.exercise_repo = InMemoryExerciseRepository()
             self.diet_repo = InMemoryDietRepository()
         else:
-            # Pas besoin de setup_database, on utilise db.py
-            pass
-    
-    def get_session_factory(self):
-        return SessionLocal  # Vient de db.py
+            from src.adapters.sqlalchemy.db import SessionLocal
+            self.SessionFactory = SessionLocal
 
     def get_profile_service(self):
         if self.env in ("dev", "test"):

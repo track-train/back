@@ -24,7 +24,6 @@ class TrainingRepository(ABC):
     async def find_all_owner_trainings(self, owner_id: UUID) -> Optional[List[Training]]:
         pass
 
-# tasks abstract methods
 
     @abstractmethod
     async def add_task(self, task: Task) -> Optional[Task]:
@@ -46,7 +45,6 @@ class TrainingRepository(ABC):
     async def find_tasks_by_training_id(self, training_id: UUID) -> Optional[List[Task]]:
         pass
 
-# validate abstract methods
 
     @abstractmethod
     async def add_validate(self, validate: Validate) -> Optional[Validate]:

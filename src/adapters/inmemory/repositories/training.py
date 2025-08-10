@@ -12,7 +12,6 @@ class InMemoryTrainingRepository(TrainingRepository):
         self._tasks: dict[UUID, DomainTask] = {}
         self._validates: dict[UUID, DomainValidate] = {}
 
-    # Training methods
     async def find_by_id(self, id: UUID) -> Optional[DomainTraining]:
         return self._trainings.get(id)
 
@@ -28,7 +27,7 @@ class InMemoryTrainingRepository(TrainingRepository):
         self._trainings.pop(id, None)
         for task_id, task in list(self._tasks.items()):
             if task.training_id == id:
-                await self.delete_task(task_id)
+                self.delete_task(task_id)
 
     async def update_training(self, training: DomainTraining) -> Optional[DomainTraining]:
         if training.id not in self._trainings:
@@ -39,7 +38,6 @@ class InMemoryTrainingRepository(TrainingRepository):
     async def find_all_owner_trainings(self, owner_id: UUID) -> List[DomainTraining]:
         return [t for t in self._trainings.values() if t.owner_id == owner_id]
 
-    # Task methods
     async def add_task(self, task: DomainTask) -> DomainTask:
         new_id = uuid4()
         task.id = new_id
@@ -56,7 +54,7 @@ class InMemoryTrainingRepository(TrainingRepository):
         if task:
             for vid, validate in list(self._validates.items()):
                 if validate.task_id == id:
-                    await self.delete_validate(vid)
+                    self.delete_validate(vid)
 
     async def update_task(self, task: DomainTask) -> Optional[DomainTask]:
         if task.id not in self._tasks:
@@ -67,7 +65,6 @@ class InMemoryTrainingRepository(TrainingRepository):
     async def find_tasks_by_training_id(self, training_id: UUID) -> List[DomainTask]:
         return [t for t in self._tasks.values() if t.training_id == training_id]
 
-    # Validate methods
     async def add_validate(self, validate: DomainValidate) -> DomainValidate:
         new_id = uuid4()
         validate.id = new_id

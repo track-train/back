@@ -55,8 +55,6 @@ class TrainingService:
             return []
         return trainings
     
-    # tasks methods service
-    
     async def create_task(
         self,
         training_id: UUID,
@@ -88,11 +86,13 @@ class TrainingService:
 
         return await self._repo.add_task(task)
 
+
     async def get_task(self, task_id: UUID) -> DomainTask:
         task = await self._repo.find_task_by_id(task_id)
         if not task:
             raise NotFoundError(f"Task {task_id} not found")
         return task
+
 
     async def update_task(
         self,
@@ -123,6 +123,7 @@ class TrainingService:
 
         return await self._repo.update_task(task)
 
+
     async def delete_task(self, task_id: UUID) -> None:
         task = await self._repo.find_task_by_id(task_id)
         if not task:
@@ -130,14 +131,13 @@ class TrainingService:
 
         await self._repo.delete_task(task_id)
 
+
     async def list_tasks_for_training(self, training_id: UUID) -> List[DomainTask]:
         tasks = await self._repo.find_tasks_by_training_id(training_id)
         if tasks is None:
             return []
         return tasks
     
-    # validate methods service
-
     async def create_validate(
         self,
         task_id: UUID,
@@ -153,6 +153,7 @@ class TrainingService:
         validate = DomainValidate(
             id=uuid4(),
             task_id=task_id,
+            exercise_name=task.exercise_name,
             rest_time=rest_time,
             repetitions=repetitions,
             set_number=set_number,

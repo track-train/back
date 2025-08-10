@@ -24,7 +24,6 @@ class DietRepository(ABC):
     async def delete_diet(self, id: UUID) -> None:
         pass
 
-# Macro Plan methods
 
     @abstractmethod
     async def add_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
@@ -50,7 +49,6 @@ class DietRepository(ABC):
     async def update_macro_plan(self, macro_plan: DomainMacroPlan) -> DomainMacroPlan:
         pass
 
-# Meal Plan methods
 
     @abstractmethod
     async def add_meal_plan(self, meal_plan: DomainMealPlan) -> DomainMealPlan:
