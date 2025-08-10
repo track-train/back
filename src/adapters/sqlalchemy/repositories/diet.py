@@ -166,6 +166,7 @@ class SqlAlchemyDietRepository(DietRepository):
 
     async def delete_meal_plan(self, id: UUID) -> None:
         orm = await self._session.get(ORMMealPlan, id)
-        if orm:
-            await self._session.delete(orm)
-            await self._session.commit()
+        if not orm:
+            return
+        await self._session.delete(orm)
+        await self._session.commit()

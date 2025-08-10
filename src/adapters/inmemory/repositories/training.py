@@ -12,6 +12,7 @@ class InMemoryTrainingRepository(TrainingRepository):
         self._tasks: dict[UUID, DomainTask] = {}
         self._validates: dict[UUID, DomainValidate] = {}
 
+    # Training methods
     async def find_by_id(self, id: UUID) -> Optional[DomainTraining]:
         return self._trainings.get(id)
 
@@ -38,6 +39,7 @@ class InMemoryTrainingRepository(TrainingRepository):
     async def find_all_owner_trainings(self, owner_id: UUID) -> List[DomainTraining]:
         return [t for t in self._trainings.values() if t.owner_id == owner_id]
 
+    # Task methods
     async def add_task(self, task: DomainTask) -> DomainTask:
         new_id = uuid4()
         task.id = new_id
@@ -65,6 +67,7 @@ class InMemoryTrainingRepository(TrainingRepository):
     async def find_tasks_by_training_id(self, training_id: UUID) -> List[DomainTask]:
         return [t for t in self._tasks.values() if t.training_id == training_id]
 
+    # Validate methods
     async def add_validate(self, validate: DomainValidate) -> DomainValidate:
         new_id = uuid4()
         validate.id = new_id

@@ -32,7 +32,7 @@ def task_from_orm(orm_task) -> DomainTask:
         method=orm_task.method,
         rir=orm_task.rir,
         updated_at=orm_task.updated_at,
-        validate=[validate_from_orm(v) for v in orm_task.validations] if orm_task.validations else None,
+        validate=None,
     )
 
 def training_from_orm(orm_training) -> DomainTraining:
@@ -93,8 +93,26 @@ class SqlAlchemyTrainingRepository(TrainingRepository):
         return task_from_orm(orm) if orm else None
 
     async def find_task_by_id(self, id: UUID) -> Optional[DomainTask]:
-        orm = await self._session.get(ORMTask, id)
-        return task_from_orm(orm) if orm else None
+        orm_task = await self._session.get(ORMTask, id)
+        if not orm_task:
+            return None
+        
+        validations_stmt = select(ORMValidate).where(ORMValidate.task_id == id)
+        validations_result = await self._session.execute(validations_stmt)
+        validations = validations_result.scalars().all()
+        
+        return DomainTask(
+            id=orm_task.id,
+            training_id=orm_task.training_id,
+            exercise_name=orm_task.exercise_name,
+            rest_time=orm_task.rest_time,
+            repetitions=orm_task.repetitions,
+            set_number=orm_task.set_number,
+            method=orm_task.method,
+            rir=orm_task.rir,
+            updated_at=orm_task.updated_at,
+            validate=None,
+        )
 
     async def delete_task(self, id: UUID) -> None:
         orm = await self._session.get(ORMTask, id)
