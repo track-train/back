@@ -6,7 +6,6 @@ from src.entrypoints.api.routers.group import router as group_router
 from src.entrypoints.api.routers.exercise import router as exercise_router
 from src.entrypoints.api.routers.training import router as training_router
 from src.entrypoints.api.routers.diet import router as diet_router
-from src.adapters.sqlalchemy.db import init_db
 
 
 app = FastAPI(
@@ -38,11 +37,3 @@ app.include_router(group_router)
 app.include_router(exercise_router)
 app.include_router(training_router)
 app.include_router(diet_router)
-
-
-# @app.on_event("startup")
-# async def startup_event():
-#     await init_db()  # ✅ Créer les tables au démarrage
-
-
-
