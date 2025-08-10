@@ -254,7 +254,7 @@ class TestTrainingScenario:
     async def test_16_user_update_task_forbidden(self, client, test_state):
         payload = {"name": "Task1 Updated", "description": "Test Task Updated"}
         r = await client.patch(
-            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}",  # ✅ Ajout de /trainings
+            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}", 
             json=payload,
             headers={"Authorization": f"Bearer {test_state['user_token']}"}
         )
@@ -263,7 +263,7 @@ class TestTrainingScenario:
     async def test_17_admin_update_task(self, client, test_state):
         payload = {"name": "Task1 Updated", "description": "Test Task Updated"}
         r = await client.patch(
-            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}",  # ✅ Ajout de /trainings
+            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}", 
             json=payload,
             headers={"Authorization": f"Bearer {test_state['admin_token']}"}
         )
@@ -272,7 +272,7 @@ class TestTrainingScenario:
     async def test_18_coach_update_task(self, client, test_state):
         payload = {"name": "Task1 Updated", "description": "Test Task Updated"}
         r = await client.patch(
-            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}",  # ✅ Ajout de /trainings
+            f"/trainings/{test_state['training_id']}/user/{test_state['user_uuid']}/tasks/{test_state['task_id']}", 
             json=payload,
             headers={"Authorization": f"Bearer {test_state['coach_token']}"}
         )
@@ -295,7 +295,7 @@ class TestTrainingScenario:
     async def test_20_user_create_validation_for_task(self, client, test_state):
         payload = {"comment": "Good job!", "score": 5}
         r = await client.post(
-            f"/trainings/{test_state['training_id']}/tasks/{test_state['task_id']}/validations",  # ✅ Ajout de /trainings
+            f"/trainings/{test_state['training_id']}/tasks/{test_state['task_id']}/validations", 
             json=payload,
             headers={"Authorization": f"Bearer {test_state['user_token']}"}
         )
