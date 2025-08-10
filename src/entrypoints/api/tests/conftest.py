@@ -1,35 +1,36 @@
-# app/adapters/sqlalchemy/repositories/postgres.py
-from src.adapters.sqlalchemy.models import Base
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from dotenv import load_dotenv
+import pytest
 import os
+from httpx import AsyncClient, ASGITransport
+from src.main import app
+from src.container import Container
+import pytest_asyncio
 
-load_dotenv()
-db_url = os.getenv("DATABASE_URL") or "postgresql://user:user@localhost:5432/postgres"
 
-# Convert sync URL to async URL for PostgreSQL
-if db_url.startswith("postgresql://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(
-    db_url,
-    pool_size=20,
-    max_overflow=20,
-    pool_timeout=30,
-)
+@pytest.fixture(scope="session", autouse=True)
+def set_test_env():
+    os.environ["ENV"] = "test" 
+    yield
 
-# Create tables - note: this will need to be called in an async context
-async def create_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
-SessionLocal = async_sessionmaker(
-    engine, 
-    class_=AsyncSession,
-    autocommit=False, 
-    autoflush=False
-)
+@pytest.fixture(scope="module", autouse=True)
+def container():
+    c = Container(env="test")  
 
-async def get_async_session() -> AsyncSession:
-    async with SessionLocal() as session:
-        yield session
+    assert os.getenv("ENV") == "test", "L'environnement n'est pas correctement configuré sur 'test'."
+    
+    return c
+
+
+@pytest_asyncio.fixture
+async def client(container):
+
+    transport = ASGITransport(app=app)
+    
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        yield ac 
+
+@pytest.fixture(scope="session")
+def test_state():
+  
+    return {}

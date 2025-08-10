@@ -37,3 +37,5 @@ app.include_router(group_router)
 app.include_router(exercise_router)
 app.include_router(training_router)
 app.include_router(diet_router)
+
+
