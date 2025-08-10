@@ -70,7 +70,7 @@ class TestDietScenario:
             test_state['coach_relogged'] = True
 
         # Create coach group if not exists
-        if 'coach_group_uuid' not in test_state:
+        if 'group_id' not in test_state:
             payload = {"name": "CoachGroup", "description": "Groupe du coach"}
             r = await client.post(
                 "/groups",
@@ -79,15 +79,41 @@ class TestDietScenario:
             )
             assert r.status_code == 201
             grp = r.json()
-            test_state["coach_group_uuid"] = grp["id"]
+            test_state["group_id"] = grp["id"]
 
         # Add user to coach group if not done
         if 'user_added_to_group' not in test_state:
-            r = await client.post(
-                f"/groups/{test_state['coach_group_uuid']}/members/{test_state['user_uuid']}",
+            # Vérifiez d'abord que le groupe existe
+            r_debug_group = await client.get(
+                f"/groups/{test_state['group_id']}",
                 headers={"Authorization": f"Bearer {test_state['coach_token']}"}
             )
-            assert r.status_code == 204
+            print(f"Group exists check: {r_debug_group.status_code}")
+            if r_debug_group.status_code != 200:
+                print(f"Group check response: {r_debug_group.text}")
+            
+            # Vérifiez que l'utilisateur existe
+            r_debug_user = await client.get(
+                f"/profiles/{test_state['user_uuid']}",
+                headers={"Authorization": f"Bearer {test_state['coach_token']}"}
+            )
+            print(f"User exists check: {r_debug_user.status_code}")
+            if r_debug_user.status_code != 200:
+                print(f"User check response: {r_debug_user.text}")
+            
+            # Tentative d'ajout du membre
+            r = await client.post(
+                f"/groups/{test_state['group_id']}/members/{test_state['user_uuid']}",
+                headers={"Authorization": f"Bearer {test_state['coach_token']}"}
+            )
+            
+            # Debug en cas d'échec
+            if r.status_code != 204:
+                print(f"Add member failed: {r.status_code} - {r.text}")
+                print(f"Group UUID: {test_state['group_id']}")
+                print(f"User UUID: {test_state['user_uuid']}")
+            
+            assert r.status_code == 204, f"Failed to add member: {r.status_code} - {r.text}"
             test_state['user_added_to_group'] = True
 
     # create new user (user3) not in team

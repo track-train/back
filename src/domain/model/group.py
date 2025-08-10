@@ -17,5 +17,5 @@ class Group:
             "owner_id": str(self.owner_id),
             "name": self.name,
             "description": self.description,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at
         }

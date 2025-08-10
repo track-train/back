@@ -23,7 +23,7 @@ services:
     ports:
       - '8000:8000'
     environment:
-      ENV: prod
+      ENV: test
       SECRET_KEY: 123456789
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       DATABASE_URL: postgresql+asyncpg://user:user@91.169.178.154:5400/postgres
