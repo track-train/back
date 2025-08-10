@@ -16,6 +16,8 @@ class Container:
 
         if self.env in ("dev", "test"):
             from src.domain.model.profile import Profile as DomainProfile
+            from datetime import datetime
+
             plain_pw = "123456789"
             hashed_pw = self.hasher.hash(plain_pw)
             admin = DomainProfile(
@@ -28,9 +30,9 @@ class Container:
                 contact=None,
                 pricing=None,
                 description=None,
-                legacy=False,
+                legacy=None,
                 roles=["admin"],
-                created_at=None,
+                created_at=datetime.now(),
             )
             from src.adapters.inmemory.repositories.profile import InMemoryProfileRepository
             from src.adapters.inmemory.repositories.group import InMemoryGroupRepository
