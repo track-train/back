@@ -459,4 +459,3 @@ class TestGroupsScenario:
 # coach try to delete admin group 403
 # admin delete admin group 204
 # coach delete own group 204
-

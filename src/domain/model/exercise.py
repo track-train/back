@@ -18,5 +18,5 @@ class Exercise:
             "name": self.name,
             "owner_id": str(self.owner_id),
             "description": self.description,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at,
         }

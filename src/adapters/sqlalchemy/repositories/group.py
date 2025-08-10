@@ -1,5 +1,6 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from src.domain.exceptions import NotFoundError
 from src.domain.model.group import Group as DomainGroup
 from src.domain.model.profile import Profile as DomainProfile
@@ -18,74 +19,104 @@ def group_from_orm(orm_group) -> DomainGroup:
     )
 
 class SqlAlchemyGroupRepository(GroupRepository):
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self._session = session
 
-    def find_by_id(self, id: UUID) -> Optional[DomainGroup]:
-        orm = self._session.get(ORMGroup, id)
+    async def find_by_id(self, id: UUID) -> Optional[DomainGroup]:
+        orm = await self._session.get(ORMGroup, id)
         return group_from_orm(orm) if orm else None
 
-    def add(self, group: DomainGroup) -> Optional[DomainGroup]:
+    async def add(self, group: DomainGroup) -> Optional[DomainGroup]:
         data = group.to_orm_dict()
         orm = ORMGroup(**data)
         self._session.add(orm)
-        self._session.commit()
-        self._session.refresh(orm)
+        await self._session.commit()
+        await self._session.refresh(orm)
         return group_from_orm(orm) if orm else None
     
-    def delete(self, id: UUID) -> None:
-        orm = self._session.get(ORMGroup, id)
+    async def delete(self, id: UUID) -> None:
+        orm = await self._session.get(ORMGroup, id)
         if not orm:
             return
-        self._session.delete(orm)
-        self._session.commit()
+        await self._session.delete(orm)
+        await self._session.commit()
     
-    def update(self, group: DomainGroup) -> Optional[DomainGroup]:
-        orm = self._session.get(ORMGroup, group.id)
+    async def update(self, group: DomainGroup) -> Optional[DomainGroup]:
+        orm = await self._session.get(ORMGroup, group.id)
         if not orm:
             raise NotFoundError(f"Groupe {group.id} not found")
         for key, value in group.to_orm_dict().items():
             setattr(orm, key, value)
-        self._session.commit()
+        await self._session.commit()
         return group_from_orm(orm) if orm else None
 
     
-    def add_member(self, group_id: UUID, user_id: UUID) -> None:
-        orm_group = self._session.get(ORMGroup, group_id)
-        if not orm_group:
-            raise NotFoundError(f"Groupe {group_id} not found")
-        orm_profile = self._session.get(ORMProfile, user_id)
-        if not orm_profile:
-            raise NotFoundError(f"Profile {user_id} not found")
-        if orm_profile not in orm_group.users:
-            orm_group.users.append(orm_profile)
-            self._session.commit()
+    async def add_member(self, group_id: UUID, user_id: UUID) -> None:
+        group_stmt = select(ORMGroup).where(ORMGroup.id == group_id)
+        group_result = await self._session.execute(group_stmt)
+        group = group_result.scalar_one_or_none()
+        
+        if not group:
+            raise NotFoundError(f"Group {group_id} not found")
+        
+        user_stmt = select(ORMProfile).where(ORMProfile.id == user_id)
+        user_result = await self._session.execute(user_stmt)
+        user = user_result.scalar_one_or_none()
+        
+        if not user:
+            raise NotFoundError(f"User {user_id} not found")
+        
+        existing_stmt = select(group_users).where(
+            (group_users.c.group_id == group_id) & 
+            (group_users.c.profile_id == user_id)
+        )
+        existing_result = await self._session.execute(existing_stmt)
+        existing = existing_result.scalar_one_or_none()
+        
+        if existing:
+            return
+        
+        insert_stmt = group_users.insert().values(
+            group_id=group_id,
+            profile_id=user_id
+        )
+        await self._session.execute(insert_stmt)
+        await self._session.commit()
 
-    def remove_member(self, group_id: UUID, user_id: UUID) -> None:
-        orm_group = self._session.get(ORMGroup, group_id)
-        if not orm_group:
-            raise NotFoundError(f"Groupe {group_id} not found")
-        orm_profile = self._session.get(ORMProfile, user_id)
-        if not orm_profile:
-            raise NotFoundError(f"Profile {user_id} not found")
-        if orm_profile in orm_group.users:
-            orm_group.users.remove(orm_profile)
-            self._session.commit()
+    async def remove_member(self, group_id: UUID, user_id: UUID) -> None:
+        delete_stmt = group_users.delete().where(
+            (group_users.c.group_id == group_id) &
+            (group_users.c.profile_id == user_id)
+        )
+        result = await self._session.execute(delete_stmt)
+        if result.rowcount == 0:
+            raise NotFoundError(f"Member {user_id} not found in group {group_id}")
+        await self._session.commit()
 
-    def list_members(self, group_id: UUID) -> List[DomainProfile]:
-        orm_grp = self._session.get(ORMGroup, group_id)
-        if not orm_grp:
+    async def list_members(self, group_id: UUID) -> List[DomainProfile]:
+        group = await self._session.get(ORMGroup, group_id)
+        if not group:
             raise NotFoundError(f"Groupe {group_id} introuvable")
-        return [profil_from_orm(p) for p in orm_grp.users]
+        
+        stmt = select(ORMProfile).join(group_users).where(group_users.c.group_id == group_id)
+        result = await self._session.execute(stmt)
+        profiles = result.scalars().all()
+        return [profil_from_orm(p) for p in profiles]
     
-    def find_by_owner_id(self, owner_id: UUID) -> Optional[List[DomainGroup]]:
-        orms = self._session.query(ORMGroup).filter(ORMGroup.owner_id == owner_id).all()
+    async def find_by_owner_id(self, owner_id: UUID) -> Optional[List[DomainGroup]]:
+        stmt = select(ORMGroup).where(ORMGroup.owner_id == owner_id)
+        result = await self._session.execute(stmt)
+        orms = result.scalars().all()
         return [group_from_orm(orm) for orm in orms] if orms else []
     
-    def find_all_groups(self) -> Optional[List[DomainGroup]]:
-        orms = self._session.query(ORMGroup).all()
+    async def find_all_groups(self) -> Optional[List[DomainGroup]]:
+        stmt = select(ORMGroup)
+        result = await self._session.execute(stmt)
+        orms = result.scalars().all()
         return [group_from_orm(orm) for orm in orms] if orms else []
 
-    def find_groups_by_member_id(self, user_id: UUID) -> Optional[List[DomainGroup]]:
-        orms = self._session.query(ORMGroup).join(group_users).filter(group_users.c.profile_id == user_id).all()
+    async def find_groups_by_member_id(self, user_id: UUID) -> Optional[List[DomainGroup]]:
+        stmt = select(ORMGroup).join(group_users).where(group_users.c.profile_id == user_id)
+        result = await self._session.execute(stmt)
+        orms = result.scalars().all()
         return [group_from_orm(orm) for orm in orms] if orms else []

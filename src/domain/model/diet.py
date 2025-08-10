@@ -14,7 +14,7 @@ class Diet:
     def to_orm_dict(self) -> dict:
         return {
             "id": str(self.id),
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at,
             "owner_id": str(self.owner_id),
             "name": self.name,
             "description": self.description,
@@ -64,6 +64,5 @@ class MealPlan:
             "name": self.name,
             "meals": [meal.__dict__ for meal in self.meals],
         }
-
 
 

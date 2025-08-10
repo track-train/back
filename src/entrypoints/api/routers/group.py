@@ -15,36 +15,36 @@ from src.container import container
 router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.post("", response_model=GroupRead, status_code=201, dependencies=[Depends(require_roles("admin", "coach"))])
-def create_group(
+async def create_group(
     dto: GroupCreate,
     user=Depends(get_current_user)
 ):
     service = container.get_group_service()
-    grp = service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
+    grp = await service.create(owner_id=UUID(user["sub"]), name=dto.name, description=dto.description)
     return GroupRead.model_validate(grp)
 
 @router.get("", response_model=List[GroupRead], dependencies=[Depends(get_current_user)])
-def list_groups():
+async def list_groups():
     service = container.get_group_service()
     try:
-        groups = service.get_all_groups()
+        groups = await service.get_all_groups()
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     return [GroupRead.model_validate(g) for g in groups]
 
 @router.get("/{group_id}", response_model=GroupRead, dependencies=[Depends(get_current_user)])
-def get_group(group_id: UUID):
+async def get_group(group_id: UUID):
     service = container.get_group_service()
-    grp = service._repo.find_by_id(group_id)
+    grp = await service._repo.find_by_id(group_id)  
     if not grp:
         raise HTTPException(404, "Group not found")
     return GroupRead.model_validate(grp)
 
 
 @router.patch("/{group_id}", response_model=GroupRead, dependencies=[Depends(require_group_owner_or_admin)])
-def patch_group(group_id: UUID, dto: GroupUpdate):
+async def patch_group(group_id: UUID, dto: GroupUpdate):
     service = container.get_group_service()
-    existing = service._repo.find_by_id(group_id)
+    existing = await service._repo.find_by_id(group_id)  
     if not existing:
         raise HTTPException(404, "Group not found")
     updated = existing
@@ -52,65 +52,64 @@ def patch_group(group_id: UUID, dto: GroupUpdate):
         updated.name = dto.name
     if dto.description is not None:
         updated.description = dto.description
-    grp = service.update(updated)
+    grp = await service.update(updated)  
     return GroupRead.model_validate(grp)
 
 @router.delete("/{group_id}", status_code=204, dependencies=[Depends(require_group_owner_or_admin)])
-def delete_group(group_id: UUID):
+async def delete_group(group_id: UUID):
     service = container.get_group_service()
     try:
-        service.delete(group_id)
+        await service.delete(group_id)
     except NotFoundError as e:
         raise HTTPException(404, str(e))
 
 @router.post("/{group_id}/members/{user_id}", status_code=204, dependencies=[Depends(require_group_owner_or_admin)])
-def add_member(group_id: UUID, user_id: UUID):
+async def add_member(group_id: UUID, user_id: UUID):
     service = container.get_group_service()
     try:
-        service.add_member(group_id, user_id)
+        await service.add_member(group_id, user_id)
     except (NotFoundError) as e:
         raise HTTPException(404, str(e))
 
 @router.delete("/{group_id}/members/{user_id}", status_code=204, dependencies=[Depends(require_group_owner_or_admin)])
-def remove_member(group_id: UUID, user_id: UUID):
+async def remove_member(group_id: UUID, user_id: UUID):
     service = container.get_group_service()
     try:
-        service.remove_member(group_id, user_id)
+        await service.remove_member(group_id, user_id)
     except (NotFoundError) as e:
         raise HTTPException(404, str(e))
 
 @router.get("/{group_id}/members", response_model=List[GroupMember], dependencies=[Depends(require_group_owner_or_admin)])
-def list_members(group_id: UUID):
+async def list_members(group_id: UUID):
     service = container.get_group_service()
     try:
-        members = service.list_members(group_id)
+        members = await service.list_members(group_id)
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     return [GroupMember.model_validate(p) for p in members]
 
 @router.get("/owner/{owner_id}", response_model=List[GroupRead], dependencies=[Depends(get_current_user)])
-def list_owner_groups(owner_id: UUID):
+async def list_owner_groups(owner_id: UUID):
     service = container.get_group_service()
     try:
-        groups = service.list_owner_groups(owner_id)
+        groups = await service.list_owner_groups(owner_id)
     except NotFoundError as e:
         raise HTTPException(404, str(e))
     return [GroupRead.model_validate(g) for g in groups]
 
 @router.delete("/{group_id}/leave", status_code=204)
-def leave_group(group_id: UUID, user=Depends(get_current_user)):
+async def leave_group(group_id: UUID, user=Depends(get_current_user)):
     service = container.get_group_service()
     try:
-        service.remove_member(group_id, UUID(user["sub"]))
+        await service.remove_member(group_id, UUID(user["sub"]))
     except NotFoundError as e:
         raise HTTPException(404, str(e))
 
 @router.get("/coachs/mine", response_model=List[CoachProfileRead])
-def get_my_coaches(user=Depends(get_current_user)):
+async def get_my_coaches(user=Depends(get_current_user)):
     service = container.get_group_service()
     try:
-        coaches = service.get_my_coaches(UUID(user["sub"]))
+        coaches = await service.get_my_coaches(UUID(user["sub"]))
         return [CoachProfileRead.model_validate(coach) for coach in coaches]
     except NotFoundError as e:
         raise HTTPException(404, str(e))
-    

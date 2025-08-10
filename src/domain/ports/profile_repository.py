@@ -5,29 +5,29 @@ from uuid import UUID
 
 class ProfileRepository(ABC):
     @abstractmethod
-    def add(self, profile: Profile) -> Profile:
+    async def add(self, profile: Profile) -> Profile:
         pass
 
     @abstractmethod
-    def find_by_email(self, email: str) -> Optional[Profile]:
+    async def find_by_email(self, email: str) -> Optional[Profile]:
         pass
 
     @abstractmethod
-    def delete(self, id: UUID) -> None:
+    async def delete(self, id: UUID) -> None:
         pass
 
     @abstractmethod
-    def find_by_id(self, id: UUID)  -> Optional[Profile]:
+    async def find_by_id(self, id: UUID)  -> Optional[Profile]:
         pass
 
     @abstractmethod
-    def update(self, profile: Profile) -> Profile:
+    async def update(self, profile: Profile) -> Profile:
         pass
 
     @abstractmethod
-    def find_all_users(self) -> list[Profile]:
+    async def find_all_users(self) -> list[Profile]:
         pass
     
     @abstractmethod
-    def find_all_coachs(self) -> list[Profile]:
+    async def find_all_coachs(self) -> list[Profile]:
         pass

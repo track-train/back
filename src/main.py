@@ -39,4 +39,3 @@ app.include_router(training_router)
 app.include_router(diet_router)
 
 
-
