@@ -78,7 +78,7 @@ class TestProfilesScenario:
         )
         assert r.status_code == 403
 
-    async def test_07_create_duplicate_user_profile_returns_400(self, client):
+    async def test_07_create_duplicate_user_profile_returns_409(self, client):
         payload = {
             "email": "alice@example.com",
             "password": "Secret123!",
@@ -86,7 +86,7 @@ class TestProfilesScenario:
             "name": "Alice Dup"
         }
         r = await client.post("/profiles", json=payload)
-        assert r.status_code == 400
+        assert r.status_code == 409
         assert "already exists" in r.json()["detail"].lower()
 
     async def test_08_coach_cannot_update_user_profile(self, client):
