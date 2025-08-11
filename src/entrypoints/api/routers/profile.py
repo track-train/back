@@ -35,7 +35,7 @@ async def create_profile(
             legacy=dto.legacy,
         )
     except DuplicateProfileError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e))
     except InvalidConfirmPasswordError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except InvalidFormatEmailError as e:
