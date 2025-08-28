@@ -6,7 +6,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  test:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -22,8 +23,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+        key: ${{ runner.os }}-pip-unit-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
+          ${{ runner.os }}-pip-unit-
           ${{ runner.os }}-pip-
 
     - name: Create and activate virtual environment
@@ -37,7 +39,57 @@ jobs:
         pip install --upgrade pip
         pip install .
 
-    - name: Run tests
+    - name: Run unit tests
+      run: |
+        source venv/bin/activate
+        pytest src/domain/tests/ \
+               -v \
+               --tb=short \
+               --cov=src/domain/services \
+               --cov=src/domain/lib \
+               --cov-report=term-missing
+
+    - name: Unit Tests Summary
+      if: always()
+      run: |
+        echo "Unit tests completed!"
+        echo "Check the logs above for details."
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-integration-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-integration-
+          ${{ runner.os }}-pip-
+
+    - name: Create and activate virtual environment
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+
+    - name: Install dependencies
+      run: |
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install .
+
+    - name: Start application server
       env:
         ENV: test
         SECRET_KEY: test_secret_key
@@ -45,6 +97,15 @@ jobs:
       run: |
         source venv/bin/activate
         uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload &
+        sleep 10  # Attendre que le serveur soit prêt
+
+    - name: Run integration tests
+      env:
+        ENV: test
+        SECRET_KEY: test_secret_key
+        ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      run: |
+        source venv/bin/activate
         pytest src/entrypoints/api/tests/profile.py \
                src/entrypoints/api/tests/group.py \
                src/entrypoints/api/tests/exercise.py \
@@ -53,8 +114,8 @@ jobs:
                -v \
                --tb=short
 
-    - name: Test Summary
+    - name: Integration Tests Summary
       if: always()
       run: |
-        echo "Tests completed!"
+        echo "Integration tests completed!"
         echo "Check the logs above for details."

@@ -1,4 +1,5 @@
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from src.domain.ports.password_hasher import PasswordHasher
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -8,4 +9,7 @@ class BcryptPasswordHasher(PasswordHasher):
         return pwd_context.hash(plain)
 
     def verify(self, plain: str, hashed: str) -> bool:
-        return pwd_context.verify(plain, hashed)
+        try:
+            return pwd_context.verify(plain, hashed)
+        except UnknownHashError:
+            return False
