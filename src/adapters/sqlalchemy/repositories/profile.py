@@ -20,6 +20,8 @@ def profil_from_orm(orm_profile) ->DomainProfile:
         legacy=orm_profile.legacy,
         roles=orm_profile.roles,
         created_at=orm_profile.created_at,
+        profile_picture_url=orm_profile.profilepicture,
+        background_picture_url=orm_profile.profilebackground,
     )
 
 
