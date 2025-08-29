@@ -1,17 +1,20 @@
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, BinaryIO
+import os
 
 from src.domain.model.profile import Profile as DomainProfile
 from src.domain.ports.profile_repository import ProfileRepository
+from src.domain.ports.image_storage import ImageStorage, ProfileImageType   
 from src.domain.ports.password_hasher import PasswordHasher
 from src.domain.exceptions import DuplicateProfileError, AuthenticationError, NotFoundError, InvalidConfirmPasswordError, InvalidFormatEmailError
 import re
 
 class ProfileService:
-    def __init__(self, repo: ProfileRepository, hasher: PasswordHasher):
+    def __init__(self, repo: ProfileRepository, hasher: PasswordHasher, image_storage: ImageStorage):
         self._repo = repo
         self._hasher = hasher
+        self._image_storage = image_storage
 
 
     async def create(self,
@@ -147,3 +150,108 @@ class ProfileService:
             raise ValueError("Roles cannot be empty")
         profile.roles = roles
         return await self._repo.update(profile)
+    
+    def _generate_image_filename(self, original_filename: str, user_id: UUID, image_type: ProfileImageType) -> str:
+        """Generate unique filename for profile images"""
+        _, ext = os.path.splitext(original_filename)
+        if not ext:
+            ext = '.jpg'
+        
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid4())[:8]
+        
+        if image_type == ProfileImageType.PROFILE_PICTURE:
+            return f"users/{user_id}/profile/{timestamp}_{unique_id}{ext}"
+        else:
+            return f"users/{user_id}/background/{timestamp}_{unique_id}{ext}"
+        
+    def _validate_image_file(self, filename: str) -> bool:
+        """Validate if file is an allowed image type"""
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
+        _, ext = os.path.splitext(filename.lower())
+        return ext in allowed_extensions
+
+    async def update_profile_picture(self, user_id: UUID, file: BinaryIO, filename: str) -> DomainProfile:
+        """Update user's profile picture"""
+        # 1. Récupère le profil (DomainProfile)
+        profile = await self.get_by_id(user_id)
+        if not profile:
+            raise NotFoundError(f"Profile with id {user_id} not found")
+        
+        # 2. Vérifie le type d'image
+        if not self._validate_image_file(filename):
+            raise ValueError("Invalid file type. Only JPG, PNG, and WebP are allowed.")
+        
+        # 3. Supprime l'ancienne image si existante
+        if profile.profile_picture_url:
+            try:
+                old_key = self._image_storage.extract_key_from_url(profile.profile_picture_url)
+                await self._image_storage.delete(old_key)
+            except Exception:
+                pass
+        
+        # 4. Upload la nouvelle image
+        new_filename = self._generate_image_filename(filename, user_id, ProfileImageType.PROFILE_PICTURE)
+        new_url = await self._image_storage.upload(file, new_filename, ProfileImageType.PROFILE_PICTURE)
+        
+        # 5. Mets à jour le champ DomainProfile
+        profile.profile_picture_url = new_url
+        
+        # 6. Passe à la repo pour écriture en BDD (le mapping Domain→ORM→DB doit être correct !)
+        return await self._repo.update(profile)
+    
+    async def update_background_picture(self, user_id: UUID, file: BinaryIO, filename: str) -> DomainProfile:
+        """Update user's background picture"""
+        profile = await self._repo.find_by_id(user_id)
+        if not profile:
+            raise NotFoundError(f"Profile with id {user_id} not found")
+        
+        if not self._validate_image_file(filename):
+            raise ValueError("Invalid file type. Only JPG, PNG, and WebP are allowed.")
+        
+        if profile.background_picture_url:
+            try:
+                old_key = self._image_storage.extract_key_from_url(profile.background_picture_url)
+                await self._image_storage.delete(old_key)
+            except Exception:
+                pass
+        
+        new_filename = self._generate_image_filename(filename, user_id, ProfileImageType.BACKGROUND_PICTURE)
+        new_url = await self._image_storage.upload(file, new_filename, ProfileImageType.BACKGROUND_PICTURE)
+        
+        profile.background_picture_url = new_url
+        
+        return await self._repo.update(profile)
+
+    async def delete_profile_picture(self, user_id: UUID) -> DomainProfile:
+        """Delete user's profile picture"""
+        profile = await self._repo.find_by_id(user_id)
+        if not profile:
+            raise NotFoundError(f"Profile with id {user_id} not found")
+        
+        if not profile.profile_picture_url:
+            raise ValueError("No profile picture to delete")
+        
+        old_key = self._image_storage.extract_key_from_url(profile.profile_picture_url)
+        await self._image_storage.delete(old_key)
+        
+        profile.profile_picture_url = None
+        
+        return await self._repo.update(profile)
+
+    async def delete_background_picture(self, user_id: UUID) -> DomainProfile:
+        profile = await self._repo.find_by_id(user_id)
+        if not profile:
+            raise NotFoundError(f"Profile with id {user_id} not found")
+        
+        if not profile.background_picture_url:
+            raise ValueError("No background picture to delete")
+        
+        old_key = self._image_storage.extract_key_from_url(profile.background_picture_url)
+        await self._image_storage.delete(old_key)
+        
+        profile.background_picture_url = None
+        
+        return await self._repo.update(profile)
+    
+    
