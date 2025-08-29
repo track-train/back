@@ -7,6 +7,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Table,
+    Boolean,
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from sqlalchemy.ext.declarative import declarative_base
@@ -45,6 +46,8 @@ class Profile(Base):
     pricing = Column(Float)
     description = Column(String)
     legacy = Column(String)
+    profilepicture = Column(String)
+    profilebackground = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     roles = Column(ARRAY(String), nullable=False, default=lambda: ["user"])
@@ -61,6 +64,7 @@ class Profile(Base):
     diets = relationship("Diet", back_populates="owner")
     requests_sent = relationship("Request", foreign_keys='Request.owner_id', back_populates="owner")
     requests_received = relationship("Request", foreign_keys='Request.target_id', back_populates="target")
+    daily_checkups = relationship("DailyCheckup", back_populates="profile")
 
 class Role(Base):
     __tablename__ = 'roles'
@@ -228,3 +232,21 @@ class Group(Base):
     owner = relationship("Profile", backref="owned_groups")
     users = relationship("Profile", secondary=group_users, back_populates="groups")
     requests = relationship("Request", back_populates="group")
+
+class DailyCheckup(Base):
+    __tablename__ = 'daily_checkups'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    profile_id = Column(UUID(as_uuid=True), ForeignKey('profiles.id'))
+    
+    sleepduration = Column(String)
+    sleepquality = Column(Integer)
+    weight = Column(Float)
+    shape = Column(Integer)
+    soreness = Column(Integer)
+    steps = Column(Integer)
+    digestion = Column(Integer)
+    dayon = Column(Boolean)
+    picture = Column(ARRAY(String), nullable=False, default=list)
+
+    profile = relationship("Profile", back_populates="daily_checkups")

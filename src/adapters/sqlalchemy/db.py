@@ -1,9 +1,7 @@
 from src.adapters.sqlalchemy.models import Base
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from dotenv import load_dotenv
 import os
 
-load_dotenv()
 db_url = os.getenv("DATABASE_URL") or "postgresql://user:user@localhost:5432/postgres"
 
 if db_url.startswith("postgresql://"):
