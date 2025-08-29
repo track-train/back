@@ -39,27 +39,30 @@ class Container:
             from src.adapters.inmemory.repositories.training import InMemoryTrainingRepository
             from src.adapters.inmemory.repositories.exercise import InMemoryExerciseRepository
             from src.adapters.inmemory.repositories.diet import InMemoryDietRepository
+            from src.adapters.inmemory.repositories.image_storage import InMemoryImageStorage
             self.profile_repo = InMemoryProfileRepository(initial=[admin])
             self.group_repo = InMemoryGroupRepository(self.profile_repo)
             self.training_repo = InMemoryTrainingRepository()
             self.exercise_repo = InMemoryExerciseRepository()
             self.diet_repo = InMemoryDietRepository()
+            self.image_repo = InMemoryImageStorage()
         else:
             from src.adapters.sqlalchemy.db import SessionLocal
+            from src.adapters.minio.image_storage import MinioImageStorage
             self.SessionFactory = SessionLocal
+            self.image_storage = MinioImageStorage()
 
     def get_profile_service(self):
         if self.env in ("dev", "test"):
             repo = self.profile_repo
-            return ProfileService(repo, self.hasher)
+            return ProfileService(repo, self.hasher, self.image_repo)
         else:
             from src.adapters.sqlalchemy.repositories.profile import SqlAlchemyProfileRepository
-            
             class SessionManagedRepository:
                 def __init__(self, repo_class, session_factory):
                     self.repo_class = repo_class
                     self.session_factory = session_factory
-                
+
                 def __getattr__(self, name):
                     async def method(*args, **kwargs):
                         async with self.session_factory() as session:
@@ -67,9 +70,8 @@ class Container:
                             repo_method = getattr(repo, name)
                             return await repo_method(*args, **kwargs)
                     return method
-            
-            repo = SessionManagedRepository(SqlAlchemyProfileRepository, self.SessionFactory)
-            return ProfileService(repo, self.hasher)
+        repo = SessionManagedRepository(SqlAlchemyProfileRepository, self.SessionFactory)
+        return ProfileService(repo, self.hasher, self.image_storage)
 
     def get_group_service(self):
         if self.env in ("dev", "test"):
