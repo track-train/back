@@ -173,16 +173,13 @@ class ProfileService:
 
     async def update_profile_picture(self, user_id: UUID, file: BinaryIO, filename: str) -> DomainProfile:
         """Update user's profile picture"""
-        # 1. Récupère le profil (DomainProfile)
         profile = await self.get_by_id(user_id)
         if not profile:
             raise NotFoundError(f"Profile with id {user_id} not found")
         
-        # 2. Vérifie le type d'image
         if not self._validate_image_file(filename):
             raise ValueError("Invalid file type. Only JPG, PNG, and WebP are allowed.")
         
-        # 3. Supprime l'ancienne image si existante
         if profile.profile_picture_url:
             try:
                 old_key = self._image_storage.extract_key_from_url(profile.profile_picture_url)
@@ -190,14 +187,11 @@ class ProfileService:
             except Exception:
                 pass
         
-        # 4. Upload la nouvelle image
         new_filename = self._generate_image_filename(filename, user_id, ProfileImageType.PROFILE_PICTURE)
         new_url = await self._image_storage.upload(file, new_filename, ProfileImageType.PROFILE_PICTURE)
         
-        # 5. Mets à jour le champ DomainProfile
         profile.profile_picture_url = new_url
         
-        # 6. Passe à la repo pour écriture en BDD (le mapping Domain→ORM→DB doit être correct !)
         return await self._repo.update(profile)
     
     async def update_background_picture(self, user_id: UUID, file: BinaryIO, filename: str) -> DomainProfile:

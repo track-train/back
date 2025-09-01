@@ -229,7 +229,7 @@ async def update_my_profile_picture(
     user: UserPayload = Depends(get_current_user)
 ):
     """Update current user's profile picture"""
-    if file.size > 2 * 1024 * 1024:  # 2MB limit
+    if file.size > 2 * 1024 * 1024: 
         raise HTTPException(400, "File too large. Maximum size is 2MB.")
     
     try:

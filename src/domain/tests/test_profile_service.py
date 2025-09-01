@@ -25,10 +25,17 @@ def mock_hasher():
     return hasher
 
 
+# Fixture pour simuler l'ImageStorage
+@pytest.fixture
+def mock_image_storage():
+    storage = AsyncMock()
+    return storage
+
+
 # Fixture pour créer une instance de ProfileService avec les mocks
 @pytest.fixture
-def profile_service(mock_repo, mock_hasher):
-    return ProfileService(repo=mock_repo, hasher=mock_hasher)
+def profile_service(mock_repo, mock_hasher, mock_image_storage):
+    return ProfileService(repo=mock_repo, hasher=mock_hasher, image_storage=mock_image_storage)
 
 
 # Test de la création de profil avec email déjà existant
@@ -234,4 +241,85 @@ async def test_update_roles(profile_service, mock_repo):
     mock_repo.update.assert_called_once_with(profile)
     # Vérifier que les rôles ont été mis à jour sur le profil original
     assert profile.roles == new_roles
+    assert updated_profile == profile
+
+
+# Tests pour les nouvelles méthodes de gestion d'images
+@pytest.mark.asyncio
+async def test_update_profile_picture(profile_service, mock_repo, mock_image_storage):
+    profile_id = uuid4()
+    file_content = b"fake_image_content"
+    filename = "profile.jpg"
+    
+    # Simuler un profil existant
+    profile = AsyncMock()
+    profile.id = profile_id
+    mock_repo.find_by_id.return_value = profile
+    mock_repo.update.return_value = profile
+    mock_image_storage.upload.return_value = "http://example.com/profile.jpg"
+
+    updated_profile = await profile_service.update_profile_picture(profile_id, file_content, filename)
+
+    mock_repo.find_by_id.assert_called_once_with(profile_id)
+    mock_image_storage.upload.assert_called_once()
+    mock_repo.update.assert_called_once_with(profile)
+    assert updated_profile == profile
+
+
+@pytest.mark.asyncio
+async def test_update_background_picture(profile_service, mock_repo, mock_image_storage):
+    profile_id = uuid4()
+    file_content = b"fake_image_content"
+    filename = "background.jpg"
+    
+    # Simuler un profil existant
+    profile = AsyncMock()
+    profile.id = profile_id
+    mock_repo.find_by_id.return_value = profile
+    mock_repo.update.return_value = profile
+    mock_image_storage.upload.return_value = "http://example.com/background.jpg"
+
+    updated_profile = await profile_service.update_background_picture(profile_id, file_content, filename)
+
+    mock_repo.find_by_id.assert_called_once_with(profile_id)
+    mock_image_storage.upload.assert_called_once()
+    mock_repo.update.assert_called_once_with(profile)
+    assert updated_profile == profile
+
+
+@pytest.mark.asyncio
+async def test_delete_profile_picture(profile_service, mock_repo, mock_image_storage):
+    profile_id = uuid4()
+    
+    # Simuler un profil existant avec une photo
+    profile = AsyncMock()
+    profile.id = profile_id
+    profile.profile_picture_url = "http://example.com/profile.jpg"
+    mock_repo.find_by_id.return_value = profile
+    mock_repo.update.return_value = profile
+
+    updated_profile = await profile_service.delete_profile_picture(profile_id)
+
+    mock_repo.find_by_id.assert_called_once_with(profile_id)
+    mock_image_storage.delete.assert_called_once()
+    mock_repo.update.assert_called_once_with(profile)
+    assert updated_profile == profile
+
+
+@pytest.mark.asyncio
+async def test_delete_background_picture(profile_service, mock_repo, mock_image_storage):
+    profile_id = uuid4()
+    
+    # Simuler un profil existant avec une image de fond
+    profile = AsyncMock()
+    profile.id = profile_id
+    profile.background_picture_url = "http://example.com/background.jpg"
+    mock_repo.find_by_id.return_value = profile
+    mock_repo.update.return_value = profile
+
+    updated_profile = await profile_service.delete_background_picture(profile_id)
+
+    mock_repo.find_by_id.assert_called_once_with(profile_id)
+    mock_image_storage.delete.assert_called_once()
+    mock_repo.update.assert_called_once_with(profile)
     assert updated_profile == profile

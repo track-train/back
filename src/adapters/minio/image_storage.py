@@ -12,14 +12,11 @@ class MinioImageStorage(ImageStorage):
     """Minio implementation for profile images storage"""
     
     def __init__(self):
-        # Single bucket for profile images (both profile and background pictures)
         self.bucket_name = os.getenv("MINIO_BUCKET_PP", "profile-pictures")
         
-        # Minio configuration
         self.region = os.getenv("MINIO_REGION", "us-east-1")
         self.public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000")
         
-        # S3 client
         self.s3_client = boto3.client(
             "s3",
             endpoint_url=os.getenv("MINIO_ENDPOINT", "http://localhost:9000"),
@@ -40,7 +37,6 @@ class MinioImageStorage(ImageStorage):
     async def upload(self, file: BinaryIO, filename: str, image_type: ProfileImageType) -> str:
         """Upload file to Minio bucket and return public URL"""
         try:
-            # Run the synchronous boto3 operation in a thread pool
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(
                 None,
@@ -55,7 +51,6 @@ class MinioImageStorage(ImageStorage):
                 )
             )
             
-            # Return the public URL
             return f"{self.public_url}/{self.bucket_name}/{filename}"
             
         except ClientError as e:
@@ -73,7 +68,6 @@ class MinioImageStorage(ImageStorage):
                 )
             )
         except ClientError as e:
-            # Don't raise exception if object doesn't exist
             if e.response['Error']['Code'] != 'NoSuchKey':
                 raise Exception(f"Failed to delete image: {str(e)}")
 
