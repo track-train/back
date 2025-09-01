@@ -84,7 +84,7 @@ class MinioImageStorage(ImageStorage):
                         'Key': filename,
                         'ContentType': self._guess_mime_type(filename)
                     },
-                    ExpiresIn=3600  # 1 hour
+                    ExpiresIn=3600
                 )
             )
             return url

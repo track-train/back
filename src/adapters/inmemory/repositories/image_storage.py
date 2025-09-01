@@ -29,7 +29,6 @@ class InMemoryImageStorage(ImageStorage):
         self._upload_urls[filename] = url
         return url
     
-    # Helper methods for testing
     def get_stored_files(self) -> dict[str, bytes]:
         """Get all stored files (for testing)"""
         return self._files.copy()

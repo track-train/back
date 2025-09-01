@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 
 from src.domain.exceptions import TokenInvalidError, TokenExpiredError
 
-# Charger le SECRET_KEY depuis l'env (charge .env en amont)
+
 SECRET_KEY = os.getenv("SECRET_KEY", "change_me_please")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -33,7 +33,6 @@ def decode_access_token(token: str) -> dict:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError as e:
-        # jose lèvera ExpiredSignatureError (sous-classe de JWTError) si expiré
         if "Signature has expired" in str(e):
             raise TokenExpiredError("Token expired") from e
         raise TokenInvalidError("Invalid JWT") from e

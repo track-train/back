@@ -18,7 +18,7 @@ from datetime import datetime
 
 Base = declarative_base()
 
-# Many-to-many for group membership
+
 group_users = Table(
     'group_users', Base.metadata,
     Column('group_id', UUID(as_uuid=True), ForeignKey('groups.id'), primary_key=True),
@@ -54,7 +54,6 @@ class Profile(Base):
 
     groups = relationship("Group", secondary=group_users, back_populates="users")
 
-    # Other relationships
     notifications = relationship("Notification", back_populates="profile")
     mensurations = relationship("Mensuration", back_populates="profile")
     weights = relationship("Weight", back_populates="profile")
