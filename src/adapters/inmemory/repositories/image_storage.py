@@ -1,19 +1,22 @@
-from typing import BinaryIO
+from typing import BinaryIO, Union
 from src.domain.ports.image_storage import ImageStorage, ProfileImageType
 
-
 class InMemoryImageStorage(ImageStorage):
-    """In-memory implementation for profile images testing"""
+    """In-memory implementation for images testing"""
     
     def __init__(self):
         self._files: dict[str, bytes] = {}
         self._upload_urls: dict[str, str] = {}
     
-    async def upload(self, file: BinaryIO, filename: str, image_type: ProfileImageType) -> str:
+    async def upload(self, file: BinaryIO, filename: str, image_type: Union[ProfileImageType, None] = None) -> str:
         """Store file content in memory and return mock URL"""
         content = file.read()
         self._files[filename] = content
-        return f"http://localhost/mock/profile-pictures/{filename}"
+        
+        if image_type and isinstance(image_type, ProfileImageType):
+            return f"http://localhost/mock/profile-pictures/{filename}"
+        else:
+            return f"http://localhost/mock/daily-checkups/{filename}"
     
     async def delete(self, object_key: str) -> None:
         """Remove file from memory storage"""
@@ -23,9 +26,12 @@ class InMemoryImageStorage(ImageStorage):
         """Extract filename from mock URL"""
         return url.split("/")[-1]
     
-    async def get_upload_url(self, filename: str, image_type: ProfileImageType) -> str:
+    async def get_upload_url(self, filename: str, image_type: Union[ProfileImageType, None] = None) -> str:
         """Generate mock presigned upload URL"""
-        url = f"http://localhost/mock/upload/profile-pictures/{filename}"
+        if image_type and isinstance(image_type, ProfileImageType):
+            url = f"http://localhost/mock/upload/profile-pictures/{filename}"
+        else:
+            url = f"http://localhost/mock/upload/daily-checkups/{filename}"
         self._upload_urls[filename] = url
         return url
     

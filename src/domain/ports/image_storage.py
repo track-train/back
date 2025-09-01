@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO
+from typing import BinaryIO, Union
 from enum import Enum
 
 
@@ -12,7 +12,7 @@ class ImageStorage(ABC):
     """Interface for image storage operations for profile images"""
     
     @abstractmethod
-    async def upload(self, file: BinaryIO, filename: str, image_type: ProfileImageType) -> str:
+    async def upload(self, file: BinaryIO, filename: str, image_type: Union[ProfileImageType, None] = None) -> str:
         """Upload an image file to the profile pictures bucket and return the public URL"""
         pass
     
