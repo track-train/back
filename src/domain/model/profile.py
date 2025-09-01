@@ -15,6 +15,8 @@ class Profile:
     pricing: Optional[float] = None
     description: Optional[str] = None
     legacy: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    background_picture_url: Optional[str] = None
     roles: List[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -31,6 +33,8 @@ class Profile:
             "pricing": self.pricing,
             "description": self.description,
             "legacy": self.legacy,
+           "profilepicture": self.profile_picture_url,
+            "profilebackground": self.background_picture_url,
             "roles": self.roles,
             "created_at": self.created_at,
         }

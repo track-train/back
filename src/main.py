@@ -1,5 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+from fastapi.security import HTTPBearer
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+print("DEBUG ENV =", os.getenv("ENV"))
+print("DEBUG DATABASE_URL =", os.getenv("DATABASE_URL"))
+app = FastAPI()
 
 from src.entrypoints.api.routers.profile import router as profile_router
 from src.entrypoints.api.routers.group import router as group_router
@@ -8,14 +18,39 @@ from src.entrypoints.api.routers.training import router as training_router
 from src.entrypoints.api.routers.diet import router as diet_router
 
 
-app = FastAPI(
-    title="API Hexagonale",
-    version="0.1.0",
-)
+bearer_scheme = HTTPBearer()
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="TracknTrain",
+        version="1.0.0",
+        description="API For TracknTrain",
+        routes=app.routes,
+    )
+    
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+
+    for path in openapi_schema["paths"].values():
+        for method in path.values():
+            method.setdefault("security", [{"BearerAuth": []}])
+
+    app.openapi_schema = openapi_schema
+    return openapi_schema
+
+app.openapi = custom_openapi
 
 origins = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://localhost:5173",
     "http://127.0.0.1:8000",

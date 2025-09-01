@@ -27,6 +27,8 @@ class ProfileRead(BaseModel):
     legacy: Optional[str]
     roles: List[str]
     created_at: datetime
+    profile_picture_url: Optional[str] = None
+    background_picture_url: Optional[str] = None
 
     model_config = {
         "from_attributes": True
@@ -41,6 +43,8 @@ class CoachProfileRead(BaseModel):
     pricing: Optional[float] = None
     description: Optional[str] = None
     legacy: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    background_picture_url: Optional[str] = None
 
     model_config = {
         "from_attributes": True

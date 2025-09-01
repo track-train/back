@@ -92,7 +92,7 @@ async def require_coach_for_user_or_admin(
 
     profile_svc = container.get_profile_service()
     try:
-        target_profile = await profile_svc.get_by_id(target_user_id)  # ✅ Ajout d'await
+        target_profile = await profile_svc.get_by_id(target_user_id) 
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -113,13 +113,13 @@ async def require_coach_for_user_or_admin(
 
     group_svc = container.get_group_service()
     try:
-        coach_groups = await group_svc.list_owner_groups(UUID(user_sub))  # ✅ Ajout d'await
+        coach_groups = await group_svc.list_owner_groups(UUID(user_sub))
     except NotFoundError:
         coach_groups = []
 
     for grp in coach_groups:
         try:
-            members = await group_svc.list_members(grp.id)  # ✅ Ajout d'await
+            members = await group_svc.list_members(grp.id)
         except NotFoundError:
             continue
         if any(m.id == target_user_id for m in members):
@@ -144,7 +144,7 @@ async def require_training_owner_or_coach_or_admin(
 
     svc = container.get_training_service()
     try:
-        training = await svc.get_training(training_id)  # ✅ Ajout d'await
+        training = await svc.get_training(training_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -157,10 +157,10 @@ async def require_training_owner_or_coach_or_admin(
     if "coach" in roles:
         group_svc = container.get_group_service()
         try:
-            coach_groups = await group_svc.list_owner_groups(UUID(sub))  # ✅ Ajout d'await
+            coach_groups = await group_svc.list_owner_groups(UUID(sub))
             for grp in coach_groups:
                 try:
-                    members = await group_svc.list_members(grp.id)  # ✅ Ajout d'await
+                    members = await group_svc.list_members(grp.id)
                     if any(m.id == training.owner_id for m in members):
                         return user
                 except NotFoundError:

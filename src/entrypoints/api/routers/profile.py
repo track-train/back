@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from uuid import UUID
 
 from sqlalchemy.sql.functions import user
@@ -217,3 +217,107 @@ async def patch_roles(
         raise HTTPException(status_code=400, detail=str(e))
     
     return ProfileRead.model_validate(updated)
+
+@router.patch(
+        "/profile-picture/{profile_id}",
+        response_model=ProfileRead,
+        status_code=status.HTTP_200_OK,
+        dependencies=[Depends(require_owner_or_admin)]
+)
+async def update_my_profile_picture(
+    file: UploadFile = File(...),
+    user: UserPayload = Depends(get_current_user)
+):
+    """Update current user's profile picture"""
+    if file.size > 2 * 1024 * 1024: 
+        raise HTTPException(400, "File too large. Maximum size is 2MB.")
+    
+    try:
+        user_id = UUID(user["sub"])
+        service = container.get_profile_service()
+        
+        profile = await service.update_profile_picture(user_id, file.file, file.filename)
+        return ProfileRead.model_validate(profile)
+        
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Upload failed: {str(e)}")
+
+@router.patch(
+        "/background-picture/{profile_id}",
+        response_model=ProfileRead,
+        status_code=status.HTTP_200_OK,
+        dependencies=[Depends(require_owner_or_admin)]
+)
+async def update_my_background_picture(
+    file: UploadFile = File(...),
+    user: UserPayload = Depends(get_current_user)
+):
+    """Update current user's background picture"""
+    if file.size > 5 * 1024 * 1024:
+        raise HTTPException(400, "File too large. Maximum size is 5MB.")
+    
+    try:
+        user_id = UUID(user["sub"])
+        service = container.get_profile_service()
+        
+        profile = await service.update_background_picture(user_id, file.file, file.filename)
+        return ProfileRead.model_validate(profile)
+        
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Upload failed: {str(e)}")
+
+@router.delete(
+        "/profile-picture/{profile_id}",
+        response_model=ProfileRead,
+        status_code=status.HTTP_200_OK,
+        dependencies=[Depends(require_owner_or_admin)]
+)
+async def delete_my_profile_picture(
+    user: UserPayload = Depends(get_current_user)
+):
+    """Delete current user's profile picture"""
+    try:
+        user_id = UUID(user["sub"])
+        service = container.get_profile_service()
+        
+        profile = await service.delete_profile_picture(user_id)
+        return ProfileRead.model_validate(profile)
+        
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Delete failed: {str(e)}")
+
+@router.delete(
+        "/background-picture/{profile_id}",
+        response_model=ProfileRead,
+        status_code=status.HTTP_200_OK,
+        dependencies=[Depends(require_owner_or_admin)]
+)
+async def delete_my_background_picture(
+    user: UserPayload = Depends(get_current_user)
+):
+    """Delete current user's background picture"""
+    try:
+        user_id = UUID(user["sub"])
+        service = container.get_profile_service()
+        
+        profile = await service.delete_background_picture(user_id)
+        return ProfileRead.model_validate(profile)
+        
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Delete failed: {str(e)}")
