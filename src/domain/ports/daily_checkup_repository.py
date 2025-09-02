@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
+from datetime import date
 from src.domain.model.daily_checkup import DailyCheckup
 
 class DailyCheckupRepository(ABC):
@@ -17,11 +18,7 @@ class DailyCheckupRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_profile_id_and_date(self, profile_id: UUID, date: str) -> Optional[DailyCheckup]:
-        pass
-
-    @abstractmethod
-    async def update(self, daily_checkup: DailyCheckup) -> DailyCheckup:
+    async def find_by_profile_id_and_date(self, profile_id: UUID, target_date: date) -> Optional[DailyCheckup]:
         pass
 
     @abstractmethod
