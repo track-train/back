@@ -1,20 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+import json
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from typing import List, Optional
 from uuid import UUID
+from datetime import date
 
-from src.entrypoints.api.schemas.daily_checkup import (
-    DailyCheckupCreate,
-    DailyCheckupResponse,
-    DailyCheckupListResponse,
-    MessageResponse
-)
-from src.entrypoints.api.deps.auth import get_current_user
-from src.domain.exceptions import NotFoundError
 from src.container import container
+from src.entrypoints.api.deps.auth import get_current_user, require_owner_or_admin
+from src.entrypoints.api.schemas.daily_checkup import DailyCheckupCreate, DailyCheckupRead
+from src.domain.exceptions import NotFoundError, ValidationError
 
-router = APIRouter(prefix="/daily-checkups", tags=["Daily Checkups"])
+router = APIRouter(prefix="/daily-checkups", tags=["daily-checkups"])
 
-@router.post("/", response_model=DailyCheckupResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
+@router.post("", response_model=DailyCheckupRead, status_code=status.HTTP_201_CREATED)
 async def create_daily_checkup(
     sleepduration: Optional[str] = Form(None),
     sleepquality: Optional[int] = Form(None),
@@ -27,45 +24,30 @@ async def create_daily_checkup(
     pictures: List[UploadFile] = File(default=[]),
     user=Depends(get_current_user)
 ):
-    """Créer un nouveau daily checkup pour l'utilisateur connecté"""
     service = container.get_daily_checkup_service()
-    
+
     try:
-        # Validation des scores (1-10)
-        score_fields = {
-            "sleepquality": sleepquality,
-            "shape": shape,
-            "soreness": soreness,
-            "digestion": digestion
-        }
-        
-        for field_name, value in score_fields.items():
-            if value is not None and (value < 1 or value > 10):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"{field_name} must be between 1 and 10"
-                )
-        
-        if weight is not None and weight <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Weight must be greater than 0"
-            )
-        
-        if steps is not None and steps < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Steps must be greater than or equal to 0"
-            )
-        
+        dto = DailyCheckupCreate(
+            sleepduration=sleepduration,
+            sleepquality=sleepquality,
+            weight=weight,
+            shape=shape,
+            soreness=soreness,
+            steps=steps,
+            digestion=digestion,
+            dayon=dayon
+        )
+
+        for file in pictures:
+            if file.size and file.size > 2 * 1024 * 1024:
+                raise HTTPException(400, f"File {file.filename} too large. Maximum size is 2MB.")
+
         picture_files = []
-        if pictures:
-            for picture in pictures:
-                if picture.filename:
-                    content = await picture.read()
-                    picture_files.append((content, picture.filename))
+        for file in pictures:
+            if file.filename:
+                picture_files.append((file.file, file.filename))
         
-        daily_checkup = await service.create(
+        checkup = await service.create(
             profile_id=UUID(user["sub"]),
             sleepduration=sleepduration,
             sleepquality=sleepquality,
@@ -75,101 +57,56 @@ async def create_daily_checkup(
             steps=steps,
             digestion=digestion,
             dayon=dayon,
-            picture_files=picture_files if picture_files else None
+            picture_files=picture_files
         )
-        
-        return DailyCheckupResponse.model_validate(daily_checkup)
-        
+        return DailyCheckupRead.model_validate(checkup)
+         
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Upload failed: {str(e)}")
+    
 
-@router.get("/{checkup_id}", response_model=DailyCheckupResponse, dependencies=[Depends(get_current_user)])
+@router.get("/mine", response_model=List[DailyCheckupRead])
+async def get_my_daily_checkups(user=Depends(get_current_user)):
+    service = container.get_daily_checkup_service()
+    checkups = await service.get_by_profile_id(UUID(user["sub"]))
+    return [DailyCheckupRead.model_validate(checkup) for checkup in checkups]
+
+@router.get("/today", response_model=Optional[DailyCheckupRead])
+async def get_today_checkup(user=Depends(get_current_user)):
+    service = container.get_daily_checkup_service()
+    checkup = await service.get_today_checkup(UUID(user["sub"]))
+    if checkup:
+        return DailyCheckupRead.model_validate(checkup)
+    return None
+
+@router.get("/{checkup_id}", response_model=DailyCheckupRead)
 async def get_daily_checkup(
     checkup_id: UUID,
     user=Depends(get_current_user)
 ):
-    """Récupérer un daily checkup spécifique par son ID"""
     service = container.get_daily_checkup_service()
-    
     try:
-        daily_checkup = await service.get_by_id(checkup_id)
-        
-        if daily_checkup.profile_id != UUID(user["sub"]):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to access this daily checkup"
-            )
-        
-        return DailyCheckupResponse.model_validate(daily_checkup)
-        
+        checkup = await service.get_by_id(checkup_id)
+        if str(checkup.profile_id) != user["sub"] and "admin" not in user.get("roles", []):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        return DailyCheckupRead.model_validate(checkup)
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Daily checkup not found"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily checkup not found")
 
-@router.get("/", response_model=DailyCheckupListResponse, dependencies=[Depends(get_current_user)])
-async def get_user_daily_checkups(
-    user=Depends(get_current_user)
-):
-    """Récupérer tous les daily checkups de l'utilisateur connecté"""
-    service = container.get_daily_checkup_service()
-    
-    try:
-        daily_checkups = await service.get_by_profile_id(UUID(user["sub"]))
-        
-        return DailyCheckupListResponse(
-            daily_checkups=[DailyCheckupResponse.model_validate(dc) for dc in daily_checkups],
-            total=len(daily_checkups)
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-@router.delete("/{checkup_id}", response_model=MessageResponse, dependencies=[Depends(get_current_user)])
+@router.delete("/{checkup_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_daily_checkup(
     checkup_id: UUID,
     user=Depends(get_current_user)
 ):
-    """Supprimer un daily checkup spécifique"""
     service = container.get_daily_checkup_service()
-    
     try:
-        daily_checkup = await service.get_by_id(checkup_id)
-        
-        if daily_checkup.profile_id != UUID(user["sub"]):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to delete this daily checkup"
-            )
-        
+        checkup = await service.get_by_id(checkup_id)
+        if str(checkup.profile_id) != user["sub"] and "admin" not in user.get("roles", []):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
         await service.delete(checkup_id)
-        
-        return MessageResponse(message="Daily checkup deleted successfully")
-        
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Daily checkup not found"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily checkup not found")
