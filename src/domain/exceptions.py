@@ -36,3 +36,7 @@ class TokenMissingError(DomainError):
 
 class AuthenticationError(DomainError):
     """Authentification failed."""
+
+class ValidationError(DomainError):
+    """Validation error."""
+    pass

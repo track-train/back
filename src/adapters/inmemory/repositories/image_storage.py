@@ -1,38 +1,72 @@
-from typing import BinaryIO
-from src.domain.ports.image_storage import ImageStorage, ProfileImageType
-
+from typing import BinaryIO, Union
+from src.domain.ports.image_storage import ImageStorage
 
 class InMemoryImageStorage(ImageStorage):
-    """In-memory implementation for profile images testing"""
-    
+    """In-memory implementation for images testing"""
+
     def __init__(self):
         self._files: dict[str, bytes] = {}
         self._upload_urls: dict[str, str] = {}
-    
-    async def upload(self, file: BinaryIO, filename: str, image_type: ProfileImageType) -> str:
+
+    async def upload(self, file: BinaryIO, filename: str, image_type: Union[object, None] = None) -> str:
         """Store file content in memory and return mock URL"""
         content = file.read()
         self._files[filename] = content
-        return f"http://localhost/mock/profile-pictures/{filename}"
-    
+
+        bucket = "mock"
+        if image_type is not None:
+            bucket_val = getattr(image_type, "value", None)
+            if bucket_val is not None:
+                if bucket_val == "profile_picture":
+                    bucket = "profile-pictures"
+                elif bucket_val == "daily_checkup":
+                    bucket = "users"
+                else:
+                    bucket = bucket_val
+            elif isinstance(image_type, str):
+                if image_type == "profile_picture":
+                    bucket = "profile-pictures"
+                elif image_type == "daily_checkup":
+                    bucket = "users"
+                else:
+                    bucket = image_type
+        return f"http://localhost/mock/{bucket}/{filename}"
+
     async def delete(self, object_key: str) -> None:
         """Remove file from memory storage"""
         self._files.pop(object_key, None)
-    
+
     def extract_key_from_url(self, url: str) -> str:
         """Extract filename from mock URL"""
         return url.split("/")[-1]
-    
-    async def get_upload_url(self, filename: str, image_type: ProfileImageType) -> str:
+
+    async def get_upload_url(self, filename: str, image_type: Union[object, None] = None) -> str:
         """Generate mock presigned upload URL"""
-        url = f"http://localhost/mock/upload/profile-pictures/{filename}"
+        bucket = "mock"
+        if image_type is not None:
+            bucket_val = getattr(image_type, "value", None)
+            if bucket_val is not None:
+                if bucket_val == "profile_picture":
+                    bucket = "profile-pictures"
+                elif bucket_val == "daily_checkup":
+                    bucket = "users"
+                else:
+                    bucket = bucket_val
+            elif isinstance(image_type, str):
+                if image_type == "profile_picture":
+                    bucket = "profile-pictures"
+                elif image_type == "daily_checkup":
+                    bucket = "users"
+                else:
+                    bucket = image_type
+        url = f"http://localhost/mock/upload/{bucket}/{filename}"
         self._upload_urls[filename] = url
         return url
-    
+
     def get_stored_files(self) -> dict[str, bytes]:
         """Get all stored files (for testing)"""
         return self._files.copy()
-    
+
     def file_exists(self, filename: str) -> bool:
         """Check if file exists in storage (for testing)"""
         return filename in self._files
