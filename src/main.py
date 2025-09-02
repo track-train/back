@@ -5,11 +5,13 @@ from fastapi.security import HTTPBearer
 import os
 
 from dotenv import load_dotenv
+from src.adapters.sqlalchemy.db import create_tables
 
 load_dotenv()
 print("DEBUG ENV =", os.getenv("ENV"))
 print("DEBUG DATABASE_URL =", os.getenv("DATABASE_URL"))
 app = FastAPI()
+from src.adapters.scheduler.daily_notification import start_daily_notification_scheduler
 
 from src.entrypoints.api.routers.profile import router as profile_router
 from src.entrypoints.api.routers.group import router as group_router
@@ -17,6 +19,7 @@ from src.entrypoints.api.routers.exercise import router as exercise_router
 from src.entrypoints.api.routers.training import router as training_router
 from src.entrypoints.api.routers.diet import router as diet_router
 from src.entrypoints.api.routers.daily_checkup import router as daily_checkup_router
+from src.entrypoints.api.routers.notification import router as notification_router
 
 
 bearer_scheme = HTTPBearer()
@@ -74,5 +77,10 @@ app.include_router(exercise_router)
 app.include_router(training_router)
 app.include_router(diet_router)
 app.include_router(daily_checkup_router)
+app.include_router(notification_router)
 
-
+@app.on_event("startup")
+async def startup_event():
+    await create_tables()
+    print("[APP] FastAPI startup, launching scheduler...")
+    start_daily_notification_scheduler()

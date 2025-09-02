@@ -9,6 +9,7 @@ from src.domain.services.training import TrainingService
 from src.domain.services.exercise import ExerciseService
 from src.domain.services.diet import DietService
 from src.domain.services.daily_checkup import DailyCheckupService
+from src.domain.services.notification import NotificationService
 class Container:
     def __init__(self, env: str | None = None):
         self.env = env if env is not None else os.getenv("ENV", "dev")
@@ -41,6 +42,7 @@ class Container:
             from src.adapters.inmemory.repositories.diet import InMemoryDietRepository
             from src.adapters.inmemory.repositories.image_storage import InMemoryImageStorage
             from src.adapters.inmemory.repositories.daily_checkup import InMemoryDailyCheckupRepository
+            from src.adapters.inmemory.repositories.notification import InMemoryNotificationRepository
             self.profile_repo = InMemoryProfileRepository(initial=[admin])
             self.group_repo = InMemoryGroupRepository(self.profile_repo)
             self.training_repo = InMemoryTrainingRepository()
@@ -48,6 +50,7 @@ class Container:
             self.diet_repo = InMemoryDietRepository()
             self.image_repo = InMemoryImageStorage()
             self.daily_checkup_repo = InMemoryDailyCheckupRepository()
+            self.notification_repo = InMemoryNotificationRepository()
         else:
             from src.adapters.sqlalchemy.db import SessionLocal
             from src.adapters.minio.image_storage import MinioImageStorage
@@ -191,5 +194,27 @@ class Container:
             repo = SessionManagedRepository(SqlAlchemyDailyCheckupRepository, self.SessionFactory)
             return DailyCheckupService(repo, self.daily_checkup_image_storage)
         
+    def get_notification_service(self):
+        if self.env in ("dev", "test"):
+            repo = self.notification_repo
+            return NotificationService(repo)
+        else:
+            from src.adapters.sqlalchemy.repositories.notification import SqlAlchemyNotificationRepository
+            
+            class SessionManagedRepository:
+                def __init__(self, repo_class, session_factory):
+                    self.repo_class = repo_class
+                    self.session_factory = session_factory
+                
+                def __getattr__(self, name):
+                    async def method(*args, **kwargs):
+                        async with self.session_factory() as session:
+                            repo = self.repo_class(session)
+                            repo_method = getattr(repo, name)
+                            return await repo_method(*args, **kwargs)
+                    return method
+            
+            repo = SessionManagedRepository(SqlAlchemyNotificationRepository, self.SessionFactory)
+            return NotificationService(repo)      
         
 container = Container()
