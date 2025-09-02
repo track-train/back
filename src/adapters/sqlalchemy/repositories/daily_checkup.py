@@ -1,23 +1,23 @@
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
-import json
+from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from sqlalchemy.orm import selectinload
-from src.domain.model.daily_checkup import DailyCheckup
+from sqlalchemy import select, and_, delete
+from src.domain.exceptions import NotFoundError
+from src.adapters.sqlalchemy.models import DailyCheckup as ORMDailyCheckup
+from src.domain.model.daily_checkup import DailyCheckup as DomainDailyCheckup
 from src.domain.ports.daily_checkup_repository import DailyCheckupRepository
-from src.infrastructure.adapters.sql.models.daily_checkup_model import DailyCheckupModel
 
-class SqlDailyCheckupRepository(DailyCheckupRepository):
+
+class SqlAlchemyDailyCheckupRepository(DailyCheckupRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def add(self, daily_checkup: DailyCheckup) -> DailyCheckup:
-        """Ajoute un nouveau daily checkup en base"""
-        db_daily_checkup = DailyCheckupModel(
+    async def add(self, daily_checkup: DomainDailyCheckup) -> DomainDailyCheckup:
+        """Ajoute un nouveau daily checkup"""
+        orm_checkup = ORMDailyCheckup(
             id=daily_checkup.id,
             profile_id=daily_checkup.profile_id,
-            date=daily_checkup.date,
             sleepduration=daily_checkup.sleepduration,
             sleepquality=daily_checkup.sleepquality,
             weight=daily_checkup.weight,
@@ -26,82 +26,90 @@ class SqlDailyCheckupRepository(DailyCheckupRepository):
             steps=daily_checkup.steps,
             digestion=daily_checkup.digestion,
             dayon=daily_checkup.dayon,
-            picture=json.dumps(daily_checkup.picture) if daily_checkup.picture else None,
+            picture=daily_checkup.picture,
             created_at=daily_checkup.created_at,
-            updated_at=daily_checkup.updated_at
         )
-        self._session.add(db_daily_checkup)
+        self._session.add(orm_checkup)
         await self._session.commit()
-        await self._session.refresh(db_daily_checkup)
-        return self._to_domain(db_daily_checkup)
+        await self._session.refresh(orm_checkup)
+        return self._to_domain(orm_checkup)
 
-    async def find_by_id(self, id: UUID) -> Optional[DailyCheckup]:
+    async def find_by_id(self, id: UUID) -> Optional[DomainDailyCheckup]:
         """Trouve un daily checkup par son ID"""
-        result = await self._session.execute(
-            select(DailyCheckupModel).where(DailyCheckupModel.id == id)
-        )
-        db_daily_checkup = result.scalar_one_or_none()
-        if db_daily_checkup is None:
-            return None
-        return self._to_domain(db_daily_checkup)
+        stmt = select(ORMDailyCheckup).where(ORMDailyCheckup.id == id)
+        result = await self._session.execute(stmt)
+        orm_checkup = result.scalar_one_or_none()
+        if orm_checkup:
+            return self._to_domain(orm_checkup)
+        return None
 
-    async def find_by_profile_id(self, profile_id: UUID) -> List[DailyCheckup]:
+    async def find_by_profile_id(self, profile_id: UUID) -> List[DomainDailyCheckup]:
         """Trouve tous les daily checkups d'un profil"""
-        result = await self._session.execute(
-            select(DailyCheckupModel)
-            .where(DailyCheckupModel.profile_id == profile_id)
-            .order_by(DailyCheckupModel.date.desc())
-        )
-        db_daily_checkups = result.scalars().all()
-        return [self._to_domain(db_daily_checkup) for db_daily_checkup in db_daily_checkups]
+        stmt = select(ORMDailyCheckup).where(
+            ORMDailyCheckup.profile_id == profile_id
+        ).order_by(ORMDailyCheckup.created_at.desc())
+        result = await self._session.execute(stmt)
+        orm_checkups = result.scalars().all()
+        return [self._to_domain(checkup) for checkup in orm_checkups]
 
-    async def find_by_profile_id_and_date(self, profile_id: UUID, date: str) -> Optional[DailyCheckup]:
+    async def find_by_profile_id_and_date(self, profile_id: UUID, target_date: date) -> Optional[DomainDailyCheckup]:
         """Trouve un daily checkup par profil et date"""
-        result = await self._session.execute(
-            select(DailyCheckupModel).where(
-                and_(
-                    DailyCheckupModel.profile_id == profile_id,
-                    DailyCheckupModel.date == date
-                )
+        start_of_day = datetime.combine(target_date, datetime.min.time())
+        end_of_day = datetime.combine(target_date, datetime.max.time())
+        
+        stmt = select(ORMDailyCheckup).where(
+            and_(
+                ORMDailyCheckup.profile_id == profile_id,
+                ORMDailyCheckup.created_at >= start_of_day,
+                ORMDailyCheckup.created_at <= end_of_day
             )
         )
-        db_daily_checkup = result.scalar_one_or_none()
-        if db_daily_checkup is None:
-            return None
-        return self._to_domain(db_daily_checkup)
+        result = await self._session.execute(stmt)
+        orm_checkup = result.scalar_one_or_none()
+        if orm_checkup:
+            return self._to_domain(orm_checkup)
+        return None
+
+    async def update(self, daily_checkup: DomainDailyCheckup) -> DomainDailyCheckup:
+        """Met à jour un daily checkup existant"""
+        orm_checkup = await self._session.get(ORMDailyCheckup, daily_checkup.id)
+        if not orm_checkup:
+            raise NotFoundError(f"Daily checkup {daily_checkup.id} not found")
+        
+        orm_checkup.sleepduration = daily_checkup.sleepduration
+        orm_checkup.sleepquality = daily_checkup.sleepquality
+        orm_checkup.weight = daily_checkup.weight
+        orm_checkup.shape = daily_checkup.shape
+        orm_checkup.soreness = daily_checkup.soreness
+        orm_checkup.steps = daily_checkup.steps
+        orm_checkup.digestion = daily_checkup.digestion
+        orm_checkup.dayon = daily_checkup.dayon
+        orm_checkup.picture = daily_checkup.picture
+        
+        await self._session.commit()
+        await self._session.refresh(orm_checkup)
+        return self._to_domain(orm_checkup)
 
     async def delete(self, id: UUID) -> None:
         """Supprime un daily checkup"""
-        result = await self._session.execute(
-            select(DailyCheckupModel).where(DailyCheckupModel.id == id)
-        )
-        db_daily_checkup = result.scalar_one_or_none()
-        if db_daily_checkup is None:
-            raise ValueError(f"Daily checkup with id {id} not found")
-        await self._session.delete(db_daily_checkup)
-        await self._session.commit()
+        orm_checkup = await self._session.get(ORMDailyCheckup, id)
+        if orm_checkup:
+            await self._session.delete(orm_checkup)
+            await self._session.commit()
 
-    def _to_domain(self, db_daily_checkup: DailyCheckupModel) -> DailyCheckup:
-        """Convertit un modèle DB en objet domain"""
-        picture_list = []
-        if db_daily_checkup.picture:
-            try:
-                picture_list = json.loads(db_daily_checkup.picture)
-            except json.JSONDecodeError:
-                picture_list = []
-        return DailyCheckup(
-            id=db_daily_checkup.id,
-            profile_id=db_daily_checkup.profile_id,
-            date=db_daily_checkup.date,
-            sleepduration=db_daily_checkup.sleepduration,
-            sleepquality=db_daily_checkup.sleepquality,
-            weight=db_daily_checkup.weight,
-            shape=db_daily_checkup.shape,
-            soreness=db_daily_checkup.soreness,
-            steps=db_daily_checkup.steps,
-            digestion=db_daily_checkup.digestion,
-            dayon=db_daily_checkup.dayon,
-            picture=picture_list,
-            created_at=db_daily_checkup.created_at,
-            updated_at=db_daily_checkup.updated_at
+    def _to_domain(self, orm_checkup: ORMDailyCheckup) -> DomainDailyCheckup:
+        """Convertit un modèle ORM en modèle de domaine"""
+        return DomainDailyCheckup(
+            id=orm_checkup.id,
+            profile_id=orm_checkup.profile_id,
+            sleepduration=orm_checkup.sleepduration,
+            sleepquality=orm_checkup.sleepquality,
+            weight=orm_checkup.weight,
+            shape=orm_checkup.shape,
+            soreness=orm_checkup.soreness,
+            steps=orm_checkup.steps,
+            digestion=orm_checkup.digestion,
+            dayon=orm_checkup.dayon,
+            picture=orm_checkup.picture or [],
+            created_at=orm_checkup.created_at,
         )
