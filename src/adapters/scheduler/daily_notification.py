@@ -10,7 +10,7 @@ logger = logging.getLogger("apscheduler")
 
 def start_daily_notification_scheduler():
     scheduler = AsyncIOScheduler()
-    trigger = CronTrigger(hour=17, minute=10)
+    trigger = CronTrigger(hour=0, minute=0)
     print(f"Daily notification scheduler started 🚀 at {trigger}")
 
     async def job():
