@@ -27,7 +27,7 @@ def custom_openapi():
     
     openapi_schema = get_openapi(
         title="TracknTrain",
-        version="1.0.0",
+        version="0.7.0",
         description="API For TracknTrain",
         routes=app.routes,
     )
