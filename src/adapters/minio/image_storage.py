@@ -2,17 +2,17 @@ import asyncio
 import boto3
 import mimetypes
 import os
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 from botocore.exceptions import ClientError
 
 from src.domain.ports.image_storage import ImageStorage, ProfileImageType
 
 
 class MinioImageStorage(ImageStorage):
-    """Minio implementation for profile images storage"""
+    """Minio implementation for images storage with dynamic bucket support"""
     
-    def __init__(self):
-        self.bucket_name = os.getenv("MINIO_BUCKET_PP", "profile-pictures")
+    def __init__(self, bucket_name: Optional[str] = None):
+        self.bucket_name = bucket_name or os.getenv("MINIO_BUCKET_PP", "profile-pictures")
         
         self.region = os.getenv("MINIO_REGION", "us-east-1")
         self.public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000")
@@ -24,6 +24,36 @@ class MinioImageStorage(ImageStorage):
             aws_secret_access_key=os.getenv("MINIO_SECRET_KEY"),
             region_name=self.region,
         )
+
+    @classmethod
+    def for_profile_pictures(cls) -> 'MinioImageStorage':
+        """
+        Factory method pour créer une instance dédiée aux images de profil
+        Utilise le bucket MINIO_BUCKET_PP
+        """
+        bucket_name = os.getenv("MINIO_BUCKET_PP", "profile-pictures")
+        return cls(bucket_name=bucket_name)
+    
+    @classmethod
+    def for_daily_checkup(cls) -> 'MinioImageStorage':
+        """
+        Factory method pour créer une instance dédiée aux daily checkups
+        Utilise le bucket MINIO_BUCKET_USERS
+        """
+        bucket_name = os.getenv("MINIO_BUCKET_USERS", "users")
+        return cls(bucket_name=bucket_name)
+    
+    @classmethod
+    def for_custom_bucket(cls, bucket_env_var: str, default_bucket: str) -> 'MinioImageStorage':
+        """
+        Factory method générique pour créer une instance avec un bucket personnalisé
+        
+        Args:
+            bucket_env_var: Nom de la variable d'environnement contenant le bucket
+            default_bucket: Nom du bucket par défaut si la variable d'env n'existe pas
+        """
+        bucket_name = os.getenv(bucket_env_var, default_bucket)
+        return cls(bucket_name=bucket_name)
     
     def _guess_mime_type(self, filename: str) -> str:
         """Guess MIME type from filename"""

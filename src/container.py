@@ -8,7 +8,7 @@ from src.domain.services.group import GroupService
 from src.domain.services.training import TrainingService
 from src.domain.services.exercise import ExerciseService
 from src.domain.services.diet import DietService
-from src.domain.services.daily_ckeckup import DailyCheckupService
+from src.domain.services.daily_checkup import DailyCheckupService
 class Container:
     def __init__(self, env: str | None = None):
         self.env = env if env is not None else os.getenv("ENV", "dev")
@@ -52,7 +52,8 @@ class Container:
             from src.adapters.sqlalchemy.db import SessionLocal
             from src.adapters.minio.image_storage import MinioImageStorage
             self.SessionFactory = SessionLocal
-            self.image_storage = MinioImageStorage()
+            self.profile_image_storage = MinioImageStorage.for_profile_pictures()
+            self.daily_checkup_image_storage = MinioImageStorage.for_daily_checkup()
 
     def get_profile_service(self):
         if self.env in ("dev", "test"):
@@ -72,8 +73,8 @@ class Container:
                             repo_method = getattr(repo, name)
                             return await repo_method(*args, **kwargs)
                     return method
-        repo = SessionManagedRepository(SqlAlchemyProfileRepository, self.SessionFactory)
-        return ProfileService(repo, self.hasher, self.image_storage)
+            repo = SessionManagedRepository(SqlAlchemyProfileRepository, self.SessionFactory)
+            return ProfileService(repo, self.hasher, self.profile_image_storage)
 
     def get_group_service(self):
         if self.env in ("dev", "test"):
@@ -172,7 +173,7 @@ class Container:
             repo = self.daily_checkup_repo
             return DailyCheckupService(repo, self.image_repo)
         else:
-            from src.adapters.sqlalchemy.repositories.daily_checkup import SqlDailyCheckupRepository
+            from src.adapters.sqlalchemy.repositories.daily_checkup import SqlAlchemyDailyCheckupRepository
             
             class SessionManagedRepository:
                 def __init__(self, repo_class, session_factory):
@@ -187,8 +188,8 @@ class Container:
                             return await repo_method(*args, **kwargs)
                     return method
             
-            repo = SessionManagedRepository(SqlDailyCheckupRepository, self.SessionFactory)
-            return DailyCheckupService(repo, self.image_storage)
+            repo = SessionManagedRepository(SqlAlchemyDailyCheckupRepository, self.SessionFactory)
+            return DailyCheckupService(repo, self.daily_checkup_image_storage)
         
         
 container = Container()
