@@ -6,6 +6,7 @@ from datetime import date
 
 from src.container import container
 from src.entrypoints.api.deps.auth import get_current_user, require_owner_or_admin
+from src.entrypoints.api.deps.roles import require_roles
 from src.entrypoints.api.schemas.daily_checkup import DailyCheckupCreate, DailyCheckupRead
 from src.domain.exceptions import NotFoundError, ValidationError
 
@@ -73,6 +74,18 @@ async def create_daily_checkup(
 async def get_my_daily_checkups(user=Depends(get_current_user)):
     service = container.get_daily_checkup_service()
     checkups = await service.get_by_profile_id(UUID(user["sub"]))
+    return [DailyCheckupRead.model_validate(checkup) for checkup in checkups]
+
+@router.get(
+    "/user/{user_id}",
+    response_model=List[DailyCheckupRead],
+    dependencies=[Depends(require_roles("admin", "coach"))]
+)
+async def get_user_daily_checkups(
+    user_id: UUID,
+):
+    service = container.get_daily_checkup_service()
+    checkups = await service.get_by_profile_id(user_id)
     return [DailyCheckupRead.model_validate(checkup) for checkup in checkups]
 
 @router.get("/today", response_model=Optional[DailyCheckupRead])
