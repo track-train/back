@@ -57,6 +57,19 @@ async def update_diet(diet_id: UUID,
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Diet not found")
     return DietRead.model_validate(updated)
 
+@router.get(
+    "/{diet_id}",
+    response_model=DietRead,
+    dependencies=[Depends(get_current_user)]
+)
+async def get_diet(diet_id: UUID):
+    svc = container.get_diet_service()
+    try:
+        diet = await svc.get_diet(diet_id)
+    except NotFoundError:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Diet not found")
+    return DietRead.model_validate(diet)
+
 @router.delete("/{diet_id}/user/{target_user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_diet(diet_id: UUID,
                 _=Depends(require_coach_for_user_or_admin)):
