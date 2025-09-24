@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    groups:
+      production:
+        patterns:
+          - "fastapi*"
+          - "sqlalchemy*"
+          - "pydantic*"
+          - "uvicorn*"
+        update-types:
+          - "minor"
+          - "patch"
+      development:
+        patterns:
+          - "pytest*"
+          - "coverage*"
+          - "httpx*"
+        update-types:
+          - "minor"
+          - "patch"
+    assignees:
+      - "Baptiste-Ferrand"
+    labels:
+      - "dependencies"
+      - "automated"
